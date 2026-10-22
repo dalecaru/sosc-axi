@@ -146,6 +146,9 @@ describe("listado consulta", () => {
     [["--puntoventa", "5,"], "--puntoventa must be a positive integer"],
     [["--tipo", "ND"], "--tipo must be one of F, NC"],
     [["--cliente", "0"], "--cliente must be a positive integer"],
+    [["--tipo", ""], "--tipo must be one of F, NC"],
+    [["--puntoventa", ""], "--puntoventa must be a positive integer"],
+    [["--cliente", ""], "--cliente must be a positive integer"],
   ])("rejects %p before calling the API", async (args, message) => {
     loggedIn();
     const calls = mockApi({});
