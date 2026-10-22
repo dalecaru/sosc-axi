@@ -5,13 +5,13 @@ import { cuitRows, fetchCuitToken, findCuits, resolveAccount } from "../auth.ts"
 import { type Cuit, loadStore, saveStore, tokenStatus } from "../store.ts";
 import type { Command } from "./index.ts";
 
-const help = `usage: sosc-axi cuits [--usuario <email>] | sosc-axi cuits use <id|cuit> [--usuario <email>]
+const help = `usage: sosc-axi cuits [--usuario <email>] | sosc-axi cuits use <cuit> [--usuario <email>]
 Lists the CUITs (own or shared) the account can access, or selects the active one
 and fetches its credentials.
 examples:
   sosc-axi cuits
-  sosc-axi cuits use 20-12345678-9
-  sosc-axi cuits use 3395 --usuario ana@estudio.com
+  sosc-axi cuits use 20123456789
+  sosc-axi cuits use 30712345671 --usuario ana@estudio.com
 `;
 
 async function run(args: string[]) {
@@ -30,20 +30,19 @@ async function run(args: string[]) {
     usuario,
     count: `${listed.length} CUITs`,
     cuits: cuitRows(listed, account.cuit),
-    help: ["Run `sosc-axi cuits use <id|cuit>` to select the CUIT to work with"],
+    help: ["Run `sosc-axi cuits use <cuit>` to select the CUIT to work with"],
   };
 }
 
 async function use(args: string[]) {
   const { values, positionals } = parse("cuits use", args, { usuario: { type: "string" } }, 1);
-  const wanted = positionals[0];
-  if (!wanted)
-    throw new AxiError("CUIT id or number is required", "VALIDATION_ERROR", ["sosc-axi cuits use <id|cuit>"]);
+  const wanted = positionals[0]?.replace(/\D/g, "");
+  if (wanted?.length !== 11)
+    throw new AxiError("CUIT number (11 digits) is required", "VALIDATION_ERROR", ["sosc-axi cuits use 20123456789"]);
 
   const store = loadStore();
   const [usuario, account] = resolveAccount(store, values.usuario);
-  const digits = wanted.replace(/\D/g, "");
-  const match = (list: Cuit[]) => list.find((c) => c.id === wanted || (digits && c.cuit.replace(/\D/g, "") === digits));
+  const match = (list: Cuit[]) => list.find((c) => c.cuit.replace(/\D/g, "") === wanted);
 
   let cuit = match(account.cuits);
   if (!cuit) {
@@ -69,7 +68,7 @@ async function use(args: string[]) {
 
 export const cuits: Command = {
   name: "cuits",
-  summary: "List CUITs of the account; `cuits use <id|cuit>` selects one",
+  summary: "List CUITs of the account; `cuits use <cuit>` selects one",
   help,
   module: "cuit",
   run,

@@ -4,6 +4,7 @@ import { compras } from "./compras.ts";
 import { cuits } from "./cuits.ts";
 import { login } from "./login.ts";
 import { logout } from "./logout.ts";
+import { status } from "./status.ts";
 import { ventas } from "./ventas.ts";
 
 export type Command = {
@@ -18,4 +19,4 @@ export type Command = {
 };
 
 // One file per command. Add a command: create src/commands/<name>.ts, register it here.
-export const COMMANDS: Command[] = [login, logout, accounts, cuits, ventas, compras];
+export const COMMANDS: Command[] = [login, logout, status, accounts, cuits, ventas, compras];

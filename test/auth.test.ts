@@ -26,7 +26,9 @@ describe("resolveAccount", () => {
     expect(() => resolveAccount(store, "zoe@x.com")).toThrow(
       expect.objectContaining({
         code: "AUTH_REQUIRED",
-        suggestions: ["Run `sosc-axi login --usuario zoe@x.com --password-stdin`"],
+        suggestions: [
+          "Ask the user to run `sosc-axi login --usuario zoe@x.com` in their own terminal (it prompts for the password)",
+        ],
       }),
     );
   });
@@ -78,8 +80,8 @@ test("cuitRows marks the active CUIT", () => {
       "2",
     ),
   ).toEqual([
-    { id: "1", cuit: "20123456789", nombre: "", active: "" },
-    { id: "2", cuit: "30712345671", nombre: "SRL", active: "*" },
+    { cuit: "20123456789", nombre: "", active: "" },
+    { cuit: "30712345671", nombre: "SRL", active: "*" },
   ]);
 });
 

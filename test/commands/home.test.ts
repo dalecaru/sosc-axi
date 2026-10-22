@@ -33,7 +33,7 @@ test("no CUIT selected and several accounts", () => {
   const out = home() as { cuit: string; help: string[] };
   expect(out.cuit).toBe("none selected");
   expect(out.help).toEqual([
-    "Run `sosc-axi cuits use <id|cuit>` to select a CUIT",
+    "Run `sosc-axi cuits use <cuit>` to select a CUIT",
     "Run `sosc-axi accounts` to see all logged-in accounts",
   ]);
 });

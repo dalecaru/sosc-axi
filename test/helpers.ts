@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { type Store, saveStore } from "../src/store.ts";
 
 export const API_URL = "http://api.test";
-const ENV = ["SOSC_AXI_HOME", "SOSC_API_URL", "SOSC_USERNAME", "SOSC_PASSWORD", "SOSC_DEBUG", "XDG_CONFIG_HOME"];
+const ENV = ["SOSC_AXI_HOME", "SOSC_API_URL", "SOSC_DEBUG", "XDG_CONFIG_HOME"];
 
 /** Per test: empty temp store, fake API base URL, no credentials leaking in from the shell. */
 export function useSandbox() {

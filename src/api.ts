@@ -1,4 +1,5 @@
 import { AxiError } from "axi-sdk-js";
+import { loginHint } from "./auth.ts";
 
 const BASE = "https://api.sos-contador.com/api-comunidad";
 
@@ -36,9 +37,8 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
   }
 
   if (res.status === 401 || res.status === 403) {
-    const who = opts.usuario ?? "<usuario>";
     throw new AxiError(`Not authorized: ${apiMessage(data) ?? `HTTP ${res.status}`}`, "AUTH_REQUIRED", [
-      `Run \`sosc-axi login --usuario ${who} --password-stdin\` to refresh the session`,
+      loginHint(opts.usuario),
     ]);
   }
   // The API reports most failures as HTTP 200 with {"error": "Error: ..."}.
