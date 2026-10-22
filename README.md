@@ -40,6 +40,19 @@ Sessions live in `~/.config/sosc-axi/accounts.json` (mode 0600). Override with `
 | `SOSC_API_URL` | API base URL (default `https://api.sos-contador.com/api-comunidad`) |
 | `SOSC_DEBUG=1` | log API responses to stderr, tokens redacted |
 
+## Ventas and compras
+
+Read-only listings and detail for the active CUIT, 50 rows per page:
+
+```sh
+sosc-axi ventas                                   # facturas of this month
+sosc-axi ventas --modo notascredito --cae sincae --periodo mes_anterior
+sosc-axi compras --desde 2026-01-01 --hasta 2026-03-31 --pagina 2
+sosc-axi ventas view 933742304                    # one invoice with imputaciones and productos
+```
+
+`--periodo` is `hoy`, `ayer`, `semana`, `mes` (default) or `mes_anterior`; `--desde/--hasta` (AAAA-MM-DD) selects a range instead. `sosc-axi <command> --help` lists every flag.
+
 ## API spec
 
 `openapi/sos-contador.openapi.yaml` is generated from the [official Postman documentation](https://documenter.getpostman.com/view/1566360/SWTD6vnC?version=latest), whose raw collection is kept next to it. Do not edit either file by hand.

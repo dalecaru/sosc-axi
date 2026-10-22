@@ -1,0 +1,176 @@
+import { AxiError } from "axi-sdk-js";
+import { api } from "./api.ts";
+import { parse } from "./args.ts";
+import { activeCuit } from "./auth.ts";
+import { loadStore } from "./store.ts";
+
+const PERIODOS = ["hoy", "ayer", "semana", "mes", "mes_anterior"];
+
+const LISTADO_FLAGS = {
+  periodo: { type: "string" },
+  desde: { type: "string" },
+  hasta: { type: "string" },
+  pagina: { type: "string" },
+  registros: { type: "string" },
+  usuario: { type: "string" },
+} as const;
+
+type Comprobante = {
+  id?: unknown;
+  fecha?: unknown;
+  factura?: unknown;
+  montototal?: unknown;
+  cae?: unknown;
+  clipro?: { cuit?: unknown; clipro?: unknown };
+};
+
+export function oneOf(flag: string, value: string | undefined, allowed: string[]): string | undefined {
+  if (value !== undefined && !allowed.includes(value)) {
+    throw new AxiError(`--${flag} must be one of ${allowed.join(", ")}`, "VALIDATION_ERROR");
+  }
+  return value;
+}
+
+const positive = (flag: string, value: string | undefined, fallback: number) => {
+  if (value === undefined) return fallback;
+  if (!/^[1-9]\d*$/.test(value)) throw new AxiError(`--${flag} must be a positive integer`, "VALIDATION_ERROR");
+  return Number(value);
+};
+
+const date = (flag: string, value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new AxiError(`--${flag} must be AAAA-MM-DD`, "VALIDATION_ERROR");
+  return value;
+};
+
+/**
+ * GET listing shared by ventas and compras: `{base}/{periodo}{suffix}` with paging and an
+ * optional date range. Both return `{items: [...]}` without a total, so a full page hints the next one.
+ */
+export async function listado(opts: {
+  command: "ventas" | "compras";
+  /** Column naming the counterparty: cliente for ventas, proveedor for compras. */
+  party: "cliente" | "proveedor";
+  args: string[];
+  flags?: Record<string, { type: "string" }>;
+  path: (periodo: string, values: Record<string, string | undefined>) => string;
+}) {
+  const { command, party } = opts;
+  const { values } = parse(command, opts.args, { ...LISTADO_FLAGS, ...opts.flags });
+  const v = values as Record<string, string | undefined>;
+  const range = v.desde !== undefined || v.hasta !== undefined;
+  if (range && v.periodo !== undefined) {
+    throw new AxiError("use --periodo or --desde/--hasta, not both", "VALIDATION_ERROR");
+  }
+  if (range && (v.desde === undefined || v.hasta === undefined)) {
+    throw new AxiError("--desde and --hasta go together", "VALIDATION_ERROR", [
+      `sosc-axi ${command} --desde 2026-01-01 --hasta 2026-01-31`,
+    ]);
+  }
+  const periodo = range ? "entre_fechas" : (oneOf("periodo", v.periodo, PERIODOS) ?? "mes");
+  const pagina = positive("pagina", v.pagina, 1);
+  const registros = positive("registros", v.registros, 50);
+
+  const query = new URLSearchParams({ pagina: String(pagina), registros: String(registros) });
+  if (range) {
+    query.set("fecha_desde", date("desde", v.desde!));
+    query.set("fecha_hasta", date("hasta", v.hasta!));
+  }
+
+  const path = `${opts.path(periodo, v)}?${query}`;
+  const store = loadStore();
+  const [usuario, cuit, jwtc] = await activeCuit(store, v.usuario);
+  const res = await api<{ items?: Comprobante[] }>(path, { token: jwtc, usuario });
+  const items = Array.isArray(res?.items) ? res.items : [];
+  const when = range ? `${v.desde} to ${v.hasta}` : periodo;
+
+  if (!items.length) {
+    return { [command]: pagina > 1 ? `0 ${command} on page ${pagina} (${when})` : `0 ${command} in ${when}` };
+  }
+  return {
+    cuit: cuit.cuit,
+    count: `${items.length} ${command} in ${when}, page ${pagina}`,
+    [command]: items.map((c) => ({
+      id: String(c.id ?? ""),
+      fecha: String(c.fecha ?? "").slice(0, 10),
+      factura: String(c.factura ?? ""),
+      [party]: String(c.clipro?.clipro ?? "").trim(),
+      cuit: String(c.clipro?.cuit ?? ""),
+      total: Number(c.montototal ?? 0),
+      cae: String(c.cae ?? ""),
+    })),
+    ...(items.length === registros ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
+  };
+}
+
+type Detalle = {
+  cabecera?: Record<string, unknown>;
+  imputaciones?: Record<string, unknown>[];
+  productos?: Record<string, unknown>[];
+};
+
+const str = (v: unknown) => (v == null ? "" : String(v).trim());
+const num = (v: unknown) => Number(v) || 0;
+const cents = (n: number) => Math.round(n * 100) / 100;
+
+/** `{base}/detalle/{id}`: header, accounting lines (imputaciones) and products of one comprobante. */
+export async function detalle(opts: {
+  command: "ventas" | "compras";
+  party: "cliente" | "proveedor";
+  base: "/venta" | "/compra";
+  args: string[];
+}) {
+  const { command, party } = opts;
+  const { values, positionals } = parse(`${command} view`, opts.args, { usuario: { type: "string" } }, 1);
+  const id = positionals[0];
+  if (!id || !/^\d+$/.test(id)) {
+    throw new AxiError(`numeric ${command} id is required`, "VALIDATION_ERROR", [
+      `sosc-axi ${command} view <id>`,
+      `Run \`sosc-axi ${command}\` to list ids`,
+    ]);
+  }
+  const [usuario, , jwtc] = await activeCuit(loadStore(), values.usuario);
+  let res: Detalle;
+  try {
+    res = await api<Detalle>(`${opts.base}/detalle/${id}`, { token: jwtc, usuario });
+  } catch (error) {
+    // The API answers unknown ids with "Imposible cargar detalles de la venta", for compras too.
+    if ((error as AxiError).code === "API_ERROR" && /imposible cargar/i.test((error as Error).message)) {
+      throw new AxiError(`${command} ${id} not found for the active CUIT`, "NOT_FOUND", [
+        `Run \`sosc-axi ${command}\` to list ids`,
+      ]);
+    }
+    throw error;
+  }
+
+  const c = res?.cabecera ?? {};
+  const imputaciones = (res?.imputaciones ?? []).map((i) => ({
+    cuenta: str(i.cuenta),
+    concepto: str(i.identificador),
+    alicuota: num(i.alicuota),
+    // Raw sides: the API sometimes books one line on both (debe X, haber -X), so no netting here.
+    debe: cents(num(i.montodebe)),
+    haber: cents(num(i.montohaber)),
+    iva_debe: cents(num(i.iva_debe)),
+    iva_haber: cents(num(i.iva_haber)),
+  }));
+  const productos = (res?.productos ?? []).map((p) => ({
+    codigo: str(p.codigo),
+    producto: str(p.producto),
+    cantidad: num(p.cantidad),
+    unitario: num(p.unitario),
+    alicuota: num(p.alicuota),
+  }));
+  return {
+    id: str(c.id) || id,
+    fecha: str(c.fecha).slice(0, 10),
+    factura: `${str(c.fcncnd)}${str(c.letra)}-${str(c.puntoventa).padStart(4, "0")}-${str(c.numero).padStart(8, "0")}`,
+    [party]: str(c.clipro),
+    cuit: str(c.cuit),
+    cae: str(c.cae),
+    cuenta: str(c.cuenta),
+    centrocosto: str(c.centrocosto),
+    ...(str(c.memo) ? { memo: str(c.memo) } : {}),
+    imputaciones,
+    ...(productos.length ? { productos } : {}),
+  };
+}
