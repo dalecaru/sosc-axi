@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { listado } from "../src/listado.ts";
+import { detalle, listado } from "../src/comprobantes.ts";
 import { expectAxiError, mockApi, seed, useSandbox } from "./helpers.ts";
 
 useSandbox();
@@ -73,5 +73,95 @@ describe("listado", () => {
     const calls = mockApi({});
     await expectAxiError(run(args), "VALIDATION_ERROR", message);
     expect(calls).toEqual([]);
+  });
+});
+
+describe("detalle", () => {
+  const view = (args: string[]) =>
+    detalle({ command: "compras", party: "proveedor", base: "/compra", args }) as Promise<Record<string, unknown>>;
+  const DETALLE = {
+    cabecera: {
+      id: 9,
+      fecha: "2026-09-17T03:00:00.000Z",
+      clipro: "TELECOM ",
+      cuit: "30639453738",
+      fcncnd: "F",
+      letra: "A",
+      puntoventa: 471,
+      numero: 2162725,
+      cae: "863",
+      cuenta: "Comunicaciones",
+      centrocosto: "General",
+      memo: null,
+    },
+    imputaciones: [
+      {
+        cuenta: "Otros",
+        identificador: "percepcionotra",
+        alicuota: 0,
+        montodebe: 34806.27,
+        montohaber: -34806.27,
+        iva_debe: 0,
+        iva_haber: 0,
+      },
+    ],
+    productos: [],
+  };
+
+  test("maps the header and keeps both sides of each imputacion; empty memo and productos are omitted", async () => {
+    loggedIn();
+    const calls = mockApi({ "GET /compra/detalle/9": DETALLE });
+    expect(await view(["9"])).toEqual({
+      id: "9",
+      fecha: "2026-09-17",
+      factura: "FA-0471-02162725",
+      proveedor: "TELECOM",
+      cuit: "30639453738",
+      cae: "863",
+      cuenta: "Comunicaciones",
+      centrocosto: "General",
+      imputaciones: [
+        {
+          cuenta: "Otros",
+          concepto: "percepcionotra",
+          alicuota: 0,
+          debe: 34806.27,
+          haber: -34806.27,
+          iva_debe: 0,
+          iva_haber: 0,
+        },
+      ],
+    });
+    expect(calls[0]!.auth).toBe("Bearer jwtc-11");
+  });
+
+  test("includes memo and productos when present; tolerates a bare response", async () => {
+    loggedIn();
+    mockApi({
+      "GET /compra/detalle/9": {
+        cabecera: { memo: "nota" },
+        productos: [{ codigo: "0001", producto: "X", cantidad: 2, unitario: "5.5", alicuota: 21 }],
+      },
+      "GET /compra/detalle/8": {},
+    });
+    const out = await view(["9"]);
+    expect(out.memo).toBe("nota");
+    expect(out.productos).toEqual([{ codigo: "0001", producto: "X", cantidad: 2, unitario: 5.5, alicuota: 21 }]);
+    expect((await view(["8"])).id).toBe("8");
+  });
+
+  test("unknown id is NOT_FOUND; other API errors pass through", async () => {
+    loggedIn();
+    mockApi({
+      "GET /compra/detalle/1": { error: "Error: Imposible cargar detalles de la venta" },
+      "GET /compra/detalle/2": { error: "Error: otra cosa" },
+    });
+    const e = await expectAxiError(view(["1"]), "NOT_FOUND", "compras 1 not found");
+    expect(e.suggestions).toEqual(["Run `sosc-axi compras` to list ids"]);
+    await expectAxiError(view(["2"]), "API_ERROR", "otra cosa");
+  });
+
+  test.each([[[]], [["abc"]]])("requires a numeric id (%p)", async (args) => {
+    await expectAxiError(view(args), "VALIDATION_ERROR", "numeric compras id is required");
   });
 });

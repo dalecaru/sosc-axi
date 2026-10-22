@@ -42,3 +42,10 @@ test("requires an active CUIT", async () => {
   seed({ default: "ana@x.com", accounts: { "ana@x.com": { jwt: "u", cuits: [] } } });
   await expectAxiError(ventas.run([], undefined), "VALIDATION_ERROR", "No active CUIT");
 });
+
+test("view <id> shows one venta", async () => {
+  loggedIn();
+  mockApi({ "GET /venta/detalle/933742304": { cabecera: { clipro: "X" } } });
+  const out = (await ventas.run(["view", "933742304"], undefined)) as Record<string, unknown>;
+  expect(out.cliente).toBe("X");
+});

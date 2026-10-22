@@ -30,3 +30,10 @@ test("surfaces API errors", async () => {
   mockApi({ "GET /compra/listado/mes?pagina=1&registros=50": { error: "Error: Período no válido" } });
   await expectAxiError(compras.run([], undefined), "API_ERROR", "Período no válido");
 });
+
+test("view <id> shows one compra", async () => {
+  loggedIn();
+  mockApi({ "GET /compra/detalle/931760031": { cabecera: { clipro: "X" } } });
+  const out = (await compras.run(["view", "931760031"], undefined)) as Record<string, unknown>;
+  expect(out.proveedor).toBe("X");
+});

@@ -35,12 +35,13 @@ Sessions live in `~/.config/sosc-axi/accounts.json` (mode 0600). Override with `
 
 ## Ventas and compras
 
-Read-only listings for the active CUIT, 50 rows per page:
+Read-only listings and detail for the active CUIT, 50 rows per page:
 
 ```sh
 sosc-axi ventas                                   # facturas of this month
 sosc-axi ventas --modo notascredito --cae sincae --periodo mes_anterior
 sosc-axi compras --desde 2026-01-01 --hasta 2026-03-31 --pagina 2
+sosc-axi ventas view 933742304                    # one invoice with imputaciones and productos
 ```
 
 `--periodo` is `hoy`, `ayer`, `semana`, `mes` (default) or `mes_anterior`; `--desde/--hasta` (AAAA-MM-DD) selects a range instead. `sosc-axi <command> --help` lists every flag.

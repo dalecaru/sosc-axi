@@ -101,3 +101,76 @@ export async function listado(opts: {
     ...(items.length === registros ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
   };
 }
+
+type Detalle = {
+  cabecera?: Record<string, unknown>;
+  imputaciones?: Record<string, unknown>[];
+  productos?: Record<string, unknown>[];
+};
+
+const str = (v: unknown) => (v == null ? "" : String(v).trim());
+const num = (v: unknown) => Number(v) || 0;
+const cents = (n: number) => Math.round(n * 100) / 100;
+
+/** `{base}/detalle/{id}`: header, accounting lines (imputaciones) and products of one comprobante. */
+export async function detalle(opts: {
+  command: "ventas" | "compras";
+  party: "cliente" | "proveedor";
+  base: "/venta" | "/compra";
+  args: string[];
+}) {
+  const { command, party } = opts;
+  const { values, positionals } = parse(`${command} view`, opts.args, { usuario: { type: "string" } }, 1);
+  const id = positionals[0];
+  if (!id || !/^\d+$/.test(id)) {
+    throw new AxiError(`numeric ${command} id is required`, "VALIDATION_ERROR", [
+      `sosc-axi ${command} view <id>`,
+      `Run \`sosc-axi ${command}\` to list ids`,
+    ]);
+  }
+  const [usuario, , jwtc] = await activeCuit(loadStore(), values.usuario);
+  let res: Detalle;
+  try {
+    res = await api<Detalle>(`${opts.base}/detalle/${id}`, { token: jwtc, usuario });
+  } catch (error) {
+    // The API answers unknown ids with "Imposible cargar detalles de la venta", for compras too.
+    if ((error as AxiError).code === "API_ERROR" && /imposible cargar/i.test((error as Error).message)) {
+      throw new AxiError(`${command} ${id} not found for the active CUIT`, "NOT_FOUND", [
+        `Run \`sosc-axi ${command}\` to list ids`,
+      ]);
+    }
+    throw error;
+  }
+
+  const c = res?.cabecera ?? {};
+  const imputaciones = (res?.imputaciones ?? []).map((i) => ({
+    cuenta: str(i.cuenta),
+    concepto: str(i.identificador),
+    alicuota: num(i.alicuota),
+    // Raw sides: the API sometimes books one line on both (debe X, haber -X), so no netting here.
+    debe: cents(num(i.montodebe)),
+    haber: cents(num(i.montohaber)),
+    iva_debe: cents(num(i.iva_debe)),
+    iva_haber: cents(num(i.iva_haber)),
+  }));
+  const productos = (res?.productos ?? []).map((p) => ({
+    codigo: str(p.codigo),
+    producto: str(p.producto),
+    cantidad: num(p.cantidad),
+    unitario: num(p.unitario),
+    alicuota: num(p.alicuota),
+  }));
+  return {
+    id: str(c.id) || id,
+    fecha: str(c.fecha).slice(0, 10),
+    factura: `${str(c.fcncnd)}${str(c.letra)}-${str(c.puntoventa).padStart(4, "0")}-${str(c.numero).padStart(8, "0")}`,
+    [party]: str(c.clipro),
+    cuit: str(c.cuit),
+    cae: str(c.cae),
+    cuenta: str(c.cuenta),
+    centrocosto: str(c.centrocosto),
+    ...(str(c.memo) ? { memo: str(c.memo) } : {}),
+    imputaciones,
+    ...(productos.length ? { productos } : {}),
+  };
+}
