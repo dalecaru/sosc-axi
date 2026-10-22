@@ -7,7 +7,7 @@ import type { Command } from "./index.ts";
 
 const help = `usage: sosc-axi clientes [--tipo cliente|proveedor] [--pagina <n>] [--registros <n>] [--usuario <email>]
 flags:
-  --tipo        cliente or proveedor (default both)
+  --tipo        cliente or proveedor (default both, each row labeled cliente, proveedor or ambos)
   --pagina      page number (default 1)
   --registros   rows per page (default 50)
 Lists the clientes and proveedores of the active CUIT (\`sosc-axi cuits use\` selects it).
@@ -43,16 +43,29 @@ async function run(args: string[]) {
   const label = tipo === "proveedor" ? "proveedores" : "clientes";
 
   if (!items.length) return { clientes: pagina > 1 ? `0 ${label} on page ${pagina}` : `0 ${label}` };
+
+  // Rows carry no cliente/proveedor flag, and the side lists page apart from this one,
+  // so a mixed listing labels rows against every page of both side lists.
+  const ids = async (side: string) => {
+    const seen = new Set<string>();
+    for (let p = 1, total = 1; p <= total; p++) {
+      const page = await api<{ paginas?: number; items?: Clipro[] }>(
+        `/cliente/listado?pagina=${p}&registros=500&${side}=true`,
+        { token: jwtc, usuario },
+      );
+      for (const c of Array.isArray(page?.items) ? page.items : []) seen.add(str(c.id));
+      total = num(page?.paginas);
+    }
+    return seen;
+  };
+  const [isCliente, isProveedor] = tipo ? [] : await Promise.all([ids("cliente"), ids("proveedor")]);
+  const tipoOf = (id: string) =>
+    tipo ?? (isCliente!.has(id) ? (isProveedor!.has(id) ? "ambos" : "cliente") : "proveedor");
+
   return {
     cuit: cuit.cuit,
     count: `${items.length} ${label}, page ${pagina} of ${paginas}`,
-    // Rows carry no cliente/proveedor flag; only a --tipo listing knows which side they are.
-    clientes: items.map((c) => ({
-      id: str(c.id),
-      cuit: str(c.cuit),
-      nombre: str(c.clipro),
-      ...(tipo ? { tipo } : {}),
-    })),
+    clientes: items.map((c) => ({ id: str(c.id), cuit: str(c.cuit), nombre: str(c.clipro), tipo: tipoOf(str(c.id)) })),
     ...(pagina < paginas ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
   };
 }

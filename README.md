@@ -105,7 +105,7 @@ sosc-axi eventanilla                              # AFIP communications of the l
 Master data of the active CUIT, read-only:
 
 ```sh
-sosc-axi clientes                                 # clientes and proveedores, 50 per page
+sosc-axi clientes                                 # clientes and proveedores, 50 per page, each tagged cliente/proveedor/ambos
 sosc-axi clientes --tipo proveedor --pagina 2
 sosc-axi productos                                # id, price and IVA rate
 sosc-axi puntosventa                              # number and name

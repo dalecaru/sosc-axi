@@ -10,7 +10,7 @@ const loggedIn = () =>
     accounts: { "ana@x.com": { jwt: "u", cuit: "11", cuits: [{ id: "11", cuit: "20123456789", jwtc: "jwtc-11" }] } },
   });
 
-test("lists clientes and proveedores by default", async () => {
+test("lists clientes and proveedores by default, labeling each row's tipo", async () => {
   loggedIn();
   const calls = mockApi({
     "GET /cliente/listado?pagina=1&registros=50&cliente=true&proveedor=true": {
@@ -20,16 +20,39 @@ test("lists clientes and proveedores by default", async () => {
         { id: 8, cuit: "20111111112", clipro: "Juan" },
       ],
     },
+    "GET /cliente/listado?pagina=1&registros=500&cliente=true": { paginas: 1, items: [{ id: 8 }] },
+    "GET /cliente/listado?pagina=1&registros=500&proveedor=true": { paginas: 1, items: [{ id: 7 }] },
   });
   const out = (await clientes.run([], undefined)) as Record<string, unknown>;
-  expect(calls[0]!.auth).toBe("Bearer jwtc-11");
+  expect(calls.map((c) => c.auth)).toEqual(["Bearer jwtc-11", "Bearer jwtc-11", "Bearer jwtc-11"]);
   expect(out.cuit).toBe("20123456789");
   expect(out.count).toBe("2 clientes, page 1 of 1");
   expect(out.clientes).toEqual([
-    { id: "7", cuit: "30500001735", nombre: "Banco de Galicia" },
-    { id: "8", cuit: "20111111112", nombre: "Juan" },
+    { id: "7", cuit: "30500001735", nombre: "Banco de Galicia", tipo: "proveedor" },
+    { id: "8", cuit: "20111111112", nombre: "Juan", tipo: "cliente" },
   ]);
   expect(out.help).toBeUndefined();
+});
+
+test("labels ambos for ids in both lists, even when they sit on different pages", async () => {
+  loggedIn();
+  mockApi({
+    "GET /cliente/listado?pagina=2&registros=2&cliente=true&proveedor=true": {
+      paginas: 2,
+      items: [
+        { id: 3, cuit: "1", clipro: "Both" },
+        { id: 4, cuit: "2", clipro: "Prov" },
+      ],
+    },
+    "GET /cliente/listado?pagina=1&registros=500&cliente=true": { paginas: 2, items: [{ id: 1 }] },
+    "GET /cliente/listado?pagina=2&registros=500&cliente=true": { paginas: 2, items: [{ id: 3 }] },
+    "GET /cliente/listado?pagina=1&registros=500&proveedor=true": { paginas: 1, items: [{ id: 3 }, { id: 4 }] },
+  });
+  const out = (await clientes.run(["--pagina", "2", "--registros", "2"], undefined)) as Record<string, unknown>;
+  expect(out.clientes).toEqual([
+    { id: "3", cuit: "1", nombre: "Both", tipo: "ambos" },
+    { id: "4", cuit: "2", nombre: "Prov", tipo: "proveedor" },
+  ]);
 });
 
 test("--tipo proveedor asks only for proveedores and labels them so", async () => {
