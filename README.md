@@ -103,7 +103,21 @@ sosc-axi eventanilla                              # AFIP communications of the l
 
 `--ejercicio` defaults to this year and `--mes` (01-12) narrows it to one month. AFIP serves e-ventanilla at most 90 days back from `--hasta`. `sosc-axi <command> --help` lists every flag.
 
-## Clientes, productos and puntos de venta
+## Contabilidad
+
+The books of the active CUIT, read-only:
+
+```sh
+sosc-axi asientos --periodo mes_anterior          # journal entries, 50 per page
+sosc-axi asientos view 951099901                  # one asiento with its imputaciones
+sosc-axi mayor 01.01.01.003.001                   # libro mayor of one cuenta, whole ejercicio
+sosc-axi mayor 01.01.01 --ejercicio 2025          # every cuenta under a rubro
+sosc-axi sumasysaldos --desde 2026-09-01 --hasta 2026-09-30   # trial balance with totals
+```
+
+`asientos --periodo` adds `anio` (last calendar year) to the usual periods; the API has no date range for asientos. The API ignores dates for the mayor, so it always covers the whole `--ejercicio` (default this year); use `sumasysaldos` for a range. `sumasysaldos` balances start at 0 on `--desde`: the asiento de apertura only counts from the start of the ejercicio.
+
+## Clientes, productos, cuentas and centros de costo
 
 Master data of the active CUIT, read-only:
 
@@ -112,6 +126,8 @@ sosc-axi clientes                                 # clientes and proveedores, 50
 sosc-axi clientes --tipo proveedor --pagina 2
 sosc-axi productos                                # id, price and IVA rate
 sosc-axi puntosventa                              # number and name
+sosc-axi cuentas                                  # plan de cuentas: codes for sosc-axi mayor
+sosc-axi centroscosto
 ```
 
 Without `--tipo`, `clientes` also reads both side lists in full to label rows, so it makes extra API calls. Above 25,000 rows per side it fails with `API_ERROR`; pass `--tipo` then.
