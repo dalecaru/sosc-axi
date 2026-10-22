@@ -1,0 +1,24 @@
+name: sync-openapi
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun run sync:openapi
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/sync-openapi
+          commit-message: "chore: sync OpenAPI spec with upstream Postman collection"
+          title: "chore: sync OpenAPI spec with upstream Postman collection"
+          body: Automated weekly sync from the official SOS Contador Postman documenter.

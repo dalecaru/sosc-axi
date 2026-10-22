@@ -1,0 +1,51 @@
+{
+  "name": "sosc-axi",
+  "version": "0.1.0-alpha.0",
+  "description": "AXI-compliant CLI for SOS Contador - agent-ergonomic TOON output",
+  "keywords": [
+    "sos-contador",
+    "sos contador",
+    "afip",
+    "arca",
+    "argentina",
+    "axi",
+    "agent",
+    "cli",
+    "toon"
+  ],
+  "license": "MIT",
+  "author": "Damián Caruso",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dalecaru/sosc-axi.git"
+  },
+  "homepage": "https://github.com/dalecaru/sosc-axi#readme",
+  "type": "module",
+  "bin": {
+    "sosc-axi": "dist/sosc-axi.js"
+  },
+  "files": [
+    "dist",
+    "skills/sosc-axi"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "bun bin/sosc-axi.ts",
+    "build": "rm -rf dist && bun build bin/sosc-axi.ts --target node --splitting --outdir dist",
+    "build:skill": "bun scripts/build-skill.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "sync:openapi": "bun scripts/sync-openapi.ts",
+    "prepublishOnly": "bun run build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "axi-sdk-js": "^0.1.13",
+    "typescript": "^5"
+  }
+}
