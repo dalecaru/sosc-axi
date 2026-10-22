@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { closeSync, fchmodSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { AxiError } from "axi-sdk-js";
 import { api } from "../api.ts";
@@ -237,7 +237,13 @@ async function pdf(args: string[]) {
     return "";
   }
   const file = resolve(values.output ?? `${id}.pdf`);
-  writeFileSync(file, res, { mode: 0o600 });
+  const fd = openSync(file, "w", 0o600);
+  try {
+    fchmodSync(fd, 0o600);
+    writeFileSync(fd, res);
+  } finally {
+    closeSync(fd);
+  }
   return { pdf: `venta ${id} saved to ${file}`, bytes: res.length };
 }
 

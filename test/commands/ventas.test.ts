@@ -271,8 +271,10 @@ describe("pdf", () => {
     loggedIn();
     mockApi({ "GET /venta/pdf/5": () => new Response(PDF) });
     const path = join(mkdtempSync(join(tmpdir(), "pdf-")), "f.pdf");
+    writeFileSync(path, "old", { mode: 0o644 });
     await ventas.run(["pdf", "5", "--output", path], undefined);
     expect(readFileSync(path)).toEqual(PDF);
+    expect(statSync(path).mode & 0o777).toBe(0o600);
 
     const stdout = spyOn(process.stdout, "write").mockReturnValue(true);
     expect(await ventas.run(["pdf", "5", "--output", "-"], undefined)).toBe("");
