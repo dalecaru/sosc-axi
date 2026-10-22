@@ -45,7 +45,7 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
   }
   const binary = opts.binary && typeof data === "string";
   if (process.env.SOSC_DEBUG) {
-    const shown = binary ? `<${bytes.length} bytes>` : redact(raw);
+    const shown = opts.binary ? `<${bytes.length} bytes>` : redact(raw);
     process.stderr.write(`[sosc-axi] ${method} ${path} -> ${res.status}\n${shown}\n`);
   }
 

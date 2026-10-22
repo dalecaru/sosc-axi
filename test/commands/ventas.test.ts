@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ventas } from "../../src/commands/ventas.ts";
@@ -261,6 +261,7 @@ describe("pdf", () => {
       const path = join(realpathSync(dir), "5.pdf");
       expect(out).toEqual({ pdf: `venta 5 saved to ${path}`, bytes: PDF.length });
       expect(readFileSync(path)).toEqual(PDF);
+      expect(statSync(path).mode & 0o777).toBe(0o600);
     } finally {
       process.chdir(cwd);
     }
@@ -289,6 +290,12 @@ describe("pdf", () => {
   test("requires a numeric id", async () => {
     await expectAxiError(ventas.run(["pdf"], undefined), "VALIDATION_ERROR", "numeric venta id is required");
   });
+});
+
+test.each(["constructor", "toString", "__proto__"])("%s is not a subcommand", async (name) => {
+  loggedIn();
+  mockApi({});
+  await expectAxiError(ventas.run([name], undefined), "VALIDATION_ERROR");
 });
 
 describe("email", () => {

@@ -112,3 +112,11 @@ test("SOSC_DEBUG logs binary bodies by size only", async () => {
   await api("/pdf", { binary: true });
   expect(String(stderr.mock.calls[0]![0])).toBe("[sosc-axi] GET /pdf -> 200\n<14 bytes>\n");
 });
+
+test("SOSC_DEBUG logs a JSON answer to a binary request by size only", async () => {
+  process.env.SOSC_DEBUG = "1";
+  const stderr = spyOn(process.stderr, "write").mockReturnValue(true);
+  mockApi({ "GET /pdf": { error: "Error: secret detail" } });
+  await expectAxiError(api("/pdf", { binary: true }), "API_ERROR", "secret detail");
+  expect(String(stderr.mock.calls[0]![0])).toBe("[sosc-axi] GET /pdf -> 200\n<32 bytes>\n");
+});

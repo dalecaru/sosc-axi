@@ -229,7 +229,7 @@ async function pdf(args: string[]) {
   const res = await api<unknown>(`/venta/pdf/${id}`, { token: jwtc, usuario, binary: true });
   if (!Buffer.isBuffer(res) || res.subarray(0, 5).toString() !== "%PDF-") {
     throw new AxiError(`SOS Contador returned no PDF for venta ${id}`, "API_ERROR", [
-      "Run with SOSC_DEBUG=1 to see the response",
+      `Run \`sosc-axi ventas view ${id}\` to check the venta exists`,
     ]);
   }
   if (values.output === "-") {
@@ -237,7 +237,7 @@ async function pdf(args: string[]) {
     return "";
   }
   const file = resolve(values.output ?? `${id}.pdf`);
-  writeFileSync(file, res);
+  writeFileSync(file, res, { mode: 0o600 });
   return { pdf: `venta ${id} saved to ${file}`, bytes: res.length };
 }
 
@@ -290,7 +290,9 @@ async function email(args: string[]) {
   return { email: `sent ${what} to ${values.email ?? `the email on file of cliente ${cliente}`}` };
 }
 
-const SUBCOMMANDS: Record<string, (args: string[]) => ReturnType<Command["run"]>> = { create, cae, pdf, email };
+const SUBCOMMANDS = new Map<string, (args: string[]) => ReturnType<Command["run"]>>(
+  Object.entries({ create, cae, pdf, email }),
+);
 
 export const ventas: Command = {
   name: "ventas",
@@ -298,7 +300,7 @@ export const ventas: Command = {
   help,
   module: "venta",
   run: (args) => {
-    const sub = SUBCOMMANDS[args[0] ?? ""];
+    const sub = SUBCOMMANDS.get(args[0] ?? "");
     if (sub) return sub(args.slice(1));
     return args[0] === "view"
       ? detalle({ command: "ventas", party: "cliente", base: "/venta", args: args.slice(1) })
