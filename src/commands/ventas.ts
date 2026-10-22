@@ -72,7 +72,7 @@ const nonFinite = (v: unknown, path: string): string[] => {
     nonFinite(x, Array.isArray(v) ? `${path}[${k}]` : path ? `${path}.${k}` : k),
   );
 };
-const scalar = (v: unknown) => (typeof v === "string" || typeof v === "number" ? str(v) : "");
+const scalar = (v: unknown) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : "");
 
 function problems(v: Record<string, unknown>) {
   const out: string[] = [];
@@ -85,8 +85,8 @@ function problems(v: Record<string, unknown>) {
   if (v.fecha != null && new Date(String(v.fecha)).toJSON()?.slice(0, 10) !== v.fecha) {
     out.push("fecha must be AAAA-MM-DD");
   }
-  if (v.uniqueid !== undefined && !(typeof v.uniqueid === "string" && v.uniqueid.trim())) {
-    out.push("uniqueid must be a non-empty string");
+  if (v.uniqueid !== undefined && !(typeof v.uniqueid === "string" && v.uniqueid && v.uniqueid === v.uniqueid.trim())) {
+    out.push("uniqueid must be a non-empty string without surrounding spaces");
   }
   if (v.descuento != null && !(typeof v.descuento === "number" && Number.isFinite(v.descuento) && v.descuento >= 0)) {
     out.push("descuento must be a number >= 0");
@@ -156,7 +156,11 @@ async function create(args: string[]) {
   const venta = readVenta(values.file);
   const errors = problems(venta);
   if (errors.length) throw new AxiError(`invalid venta: ${errors.join("; ")}`, "VALIDATION_ERROR");
-  const body = { ...venta, obtienecae: Boolean(values.cae), uniqueid: str(venta.uniqueid) || randomUUID() };
+  const body = {
+    ...venta,
+    obtienecae: Boolean(values.cae),
+    uniqueid: (venta.uniqueid as string | undefined) ?? randomUUID(),
+  };
   if (values["dry-run"]) return { request: "PUT /venta (dry run, nothing sent)", body };
 
   const [usuario, , jwtc] = await activeCuit(loadStore(), values.usuario);

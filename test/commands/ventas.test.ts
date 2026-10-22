@@ -171,6 +171,9 @@ describe("create", () => {
     [{ imputaciones: null }, "imputaciones must be an array"],
     [{ uniqueid: { a: 1 } }, "uniqueid must be a non-empty string"],
     [{ uniqueid: " " }, "uniqueid must be a non-empty string"],
+    [{ uniqueid: " u-1 " }, "uniqueid must be a non-empty string without surrounding spaces"],
+    [{ cuitclipro: " 50000000016 " }, "is not a valid CUIT"],
+    [{ idclipro: " 77 " }, "idclipro must be a numeric cliente id"],
   ])("rejects %j before calling the API", async (patch, message) => {
     const calls = mockApi({});
     await expectAxiError(create(["--file", file({ ...VENTA, ...patch }), "--dry-run"]), "VALIDATION_ERROR", message);
