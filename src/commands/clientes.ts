@@ -1,3 +1,4 @@
+import { AxiError } from "axi-sdk-js";
 import { api } from "../api.ts";
 import { parse } from "../args.ts";
 import { activeCuit } from "../auth.ts";
@@ -7,7 +8,7 @@ import type { Command } from "./index.ts";
 
 const help = `usage: sosc-axi clientes [--tipo cliente|proveedor] [--pagina <n>] [--registros <n>] [--usuario <email>]
 flags:
-  --tipo        cliente or proveedor (default both)
+  --tipo        cliente or proveedor (default both, each row labeled cliente, proveedor or ambos)
   --pagina      page number (default 1)
   --registros   rows per page (default 50)
 Lists the clientes and proveedores of the active CUIT (\`sosc-axi cuits use\` selects it).
@@ -43,16 +44,42 @@ async function run(args: string[]) {
   const label = tipo === "proveedor" ? "proveedores" : "clientes";
 
   if (!items.length) return { clientes: pagina > 1 ? `0 ${label} on page ${pagina}` : `0 ${label}` };
+
+  // Rows carry no cliente/proveedor flag, and the side lists page apart from this one,
+  // so a mixed listing labels rows against every page of both side lists.
+  const ids = async (side: string) => {
+    const seen = new Set<string>();
+    for (let p = 1, total = 1; p <= total; p++) {
+      if (p > 50)
+        throw new AxiError(`The ${side} list has more than 50 pages; cannot label rows`, "API_ERROR", [
+          "Run with `--tipo cliente` or `--tipo proveedor` instead",
+        ]);
+      const page = await api<{ paginas?: number; items?: Clipro[] }>(
+        `/cliente/listado?pagina=${p}&registros=500&${side}=true`,
+        { token: jwtc, usuario },
+      );
+      const rows = Array.isArray(page?.items) ? page.items : [];
+      for (const c of rows) seen.add(str(c.id));
+      // An empty page ends the list even if paginas claims more.
+      total = rows.length ? num(page?.paginas) : 0;
+    }
+    return seen;
+  };
+  const [isCliente, isProveedor] = tipo ? [] : await Promise.all([ids("cliente"), ids("proveedor")]);
+  const tipoOf = (id: string) => {
+    if (tipo) return tipo;
+    const [c, p] = [isCliente!.has(id), isProveedor!.has(id)];
+    if (!c && !p)
+      throw new AxiError(`Row ${id} is in neither the cliente nor the proveedor list; cannot label it`, "API_ERROR", [
+        "Run again, or with `--tipo cliente` or `--tipo proveedor`",
+      ]);
+    return c ? (p ? "ambos" : "cliente") : "proveedor";
+  };
+
   return {
     cuit: cuit.cuit,
     count: `${items.length} ${label}, page ${pagina} of ${paginas}`,
-    // Rows carry no cliente/proveedor flag; only a --tipo listing knows which side they are.
-    clientes: items.map((c) => ({
-      id: str(c.id),
-      cuit: str(c.cuit),
-      nombre: str(c.clipro),
-      ...(tipo ? { tipo } : {}),
-    })),
+    clientes: items.map((c) => ({ id: str(c.id), cuit: str(c.cuit), nombre: str(c.clipro), tipo: tipoOf(str(c.id)) })),
     ...(pagina < paginas ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
   };
 }
