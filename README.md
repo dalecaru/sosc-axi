@@ -1,4 +1,11 @@
-# sosc-axi
+<h1 align="center">sosc-axi</h1>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/sosc-axi"><img alt="npm" src="https://img.shields.io/npm/v/sosc-axi/alpha?style=flat-square" /></a>
+  <a href="https://github.com/dalecaru/sosc-axi/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dalecaru/sosc-axi/ci.yml?branch=main&style=flat-square&label=ci" /></a>
+  <a href="https://github.com/dalecaru/sosc-axi/actions/workflows/release-please.yml"><img alt="Release" src="https://img.shields.io/github/actions/workflow/status/dalecaru/sosc-axi/release-please.yml?branch=main&style=flat-square&label=release" /></a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue?style=flat-square" />
+</p>
 
 Agent-ergonomic CLI for the [SOS Contador](https://www.sos-contador.com) accounting API (Argentina), built on the [AXI](https://axi.md) conventions: token-efficient [TOON](https://toonformat.dev) output, structured errors on stdout, no interactive prompts, and next-step hints.
 
