@@ -191,7 +191,7 @@ export const PERIODO_FISCAL_FLAGS = {
   usuario: { type: "string" },
 } as const;
 
-const year = (flag: string, value: string) => {
+export const year = (flag: string, value: string) => {
   if (!/^\d{4}$/.test(value)) throw new AxiError(`--${flag} must be AAAA`, "VALIDATION_ERROR");
   return value;
 };
