@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/dalecaru/sosc-axi/compare/sosc-axi-v0.1.0-alpha.2...sosc-axi-v0.1.1) (2026-10-22)
+
+
+### Miscellaneous Chores
+
+* stable releases, patch bumps while on 0.x ([#15](https://github.com/dalecaru/sosc-axi/issues/15)) ([5db2fcc](https://github.com/dalecaru/sosc-axi/commit/5db2fcc4eb76482fd93229cad0834960e50bac7d))
+
 ## [0.1.0-alpha.2](https://github.com/dalecaru/sosc-axi/compare/sosc-axi-v0.1.0-alpha.1...sosc-axi-v0.1.0-alpha.2) (2026-10-22)
 
 
