@@ -153,6 +153,8 @@ describe("create", () => {
     [{ puntoventa: 0 }, "puntoventa must be a positive integer"],
     [{ cuitclipro: "20123456789" }, "cuitclipro 20123456789 is not a valid CUIT"],
     [{ cuitclipro: undefined }, "idclipro or cuitclipro is required"],
+    [{ cuitclipro: undefined, idclipro: {} }, "idclipro must be a numeric cliente id"],
+    [{ idclipro: "abc" }, "idclipro must be a numeric cliente id"],
     [{ fecha: "22/10/2026" }, "fecha must be AAAA-MM-DD"],
     [{ descuento: -1 }, "descuento must be a number >= 0"],
     [{ productos: [] }, "at least one producto or imputacion is required"],

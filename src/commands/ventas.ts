@@ -73,6 +73,7 @@ function problems(v: Record<string, unknown>) {
   if (!Number.isInteger(v.puntoventa) || !isPositive(v.puntoventa)) out.push("puntoventa must be a positive integer");
   if (v.cuitclipro != null && !validCuit(v.cuitclipro)) out.push(`cuitclipro ${v.cuitclipro} is not a valid CUIT`);
   if (v.cuitclipro == null && v.idclipro == null) out.push("idclipro or cuitclipro is required");
+  if (v.idclipro != null && !/^\d+$/.test(scalar(v.idclipro))) out.push("idclipro must be a numeric cliente id");
   if (v.fecha != null && new Date(String(v.fecha)).toJSON()?.slice(0, 10) !== v.fecha) {
     out.push("fecha must be AAAA-MM-DD");
   }
