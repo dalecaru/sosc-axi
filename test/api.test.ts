@@ -49,6 +49,14 @@ describe("request", () => {
     expect(await api("/txt")).toBe("plain");
     expect(await api("/empty")).toBeNull();
   });
+
+  test("binary returns non-JSON bodies as bytes, still parsing JSON and errors", async () => {
+    const pdf = Buffer.from([0x25, 0x50, 0x44, 0x46, 0xff, 0x00, 0xe2]);
+    mockApi({ "GET /pdf": new Response(pdf), "GET /json": { a: 1 }, "GET /err": { error: "Error: no existe" } });
+    expect(await api("/pdf", { binary: true })).toEqual(pdf);
+    expect(await api("/json", { binary: true })).toEqual({ a: 1 });
+    await expectAxiError(api("/err", { binary: true }), "API_ERROR", "no existe");
+  });
 });
 
 describe("errors", () => {
@@ -95,4 +103,12 @@ test("SOSC_DEBUG logs to stderr with tokens redacted", async () => {
   expect(out).toContain('"jwt":"<redacted>"');
   expect(out).toContain('"jwtc":"<redacted>"');
   expect(out).not.toContain("secret");
+});
+
+test("SOSC_DEBUG logs binary bodies by size only", async () => {
+  process.env.SOSC_DEBUG = "1";
+  const stderr = spyOn(process.stderr, "write").mockReturnValue(true);
+  mockApi({ "GET /pdf": new Response("%PDF-1.4 bytes") });
+  await api("/pdf", { binary: true });
+  expect(String(stderr.mock.calls[0]![0])).toBe("[sosc-axi] GET /pdf -> 200\n<14 bytes>\n");
 });
