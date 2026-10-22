@@ -21,11 +21,14 @@ npx -y sosc-axi@alpha
 
 SOS Contador authenticates a **user** (`POST /login`) and then each **CUIT** the user can access (`GET /cuit/credentials/:idcuit`). `sosc-axi` stores both tokens per account, so several users and CUITs can be used side by side. Passwords are never stored.
 
+Log in from your own terminal, not through an agent: `login` prompts for the user and password, so the agent never sees them. Agents only use the stored session.
+
 ```sh
-printf '%s' "$PASS" | sosc-axi login --usuario ana@estudio.com --password-stdin
+sosc-axi login                       # prompts for usuario and password
+sosc-axi status                      # check the session and active CUIT against the API
 sosc-axi cuits                       # CUITs the account can access
-sosc-axi cuits use 20-12345678-9     # select the working CUIT
-sosc-axi login --usuario bob@estudio.com --password-stdin   # add another account
+sosc-axi cuits use 20123456789       # select the working CUIT
+sosc-axi login --usuario bob@estudio.com   # add another account
 sosc-axi accounts                    # list logged-in accounts
 sosc-axi accounts use ana@estudio.com
 sosc-axi cuits --usuario bob@estudio.com   # act as a non-default account
@@ -36,7 +39,6 @@ Sessions live in `~/.config/sosc-axi/accounts.json` (mode 0600). Override with `
 
 | Env | Purpose |
 | --- | --- |
-| `SOSC_USERNAME` / `SOSC_PASSWORD` | login credentials when flags/stdin are not given |
 | `SOSC_API_URL` | API base URL (default `https://api.sos-contador.com/api-comunidad`) |
 | `SOSC_DEBUG=1` | log API responses to stderr, tokens redacted |
 

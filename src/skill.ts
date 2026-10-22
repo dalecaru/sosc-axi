@@ -2,7 +2,7 @@ import { DESCRIPTION } from "./cli.ts";
 
 // Trigger string agents match against to auto-load the skill. Extend it as commands land.
 export const SKILL_DESCRIPTION =
-  "Operate the SOS Contador accounting API (Argentina) through the sosc-axi CLI - log in one or more users, " +
+  "Operate the SOS Contador accounting API (Argentina) through the sosc-axi CLI - check the session with status, " +
   "list and select CUITs, list ventas (sales) and compras (purchases). Use whenever a task touches SOS Contador or the books of an Argentine CUIT kept there.";
 
 // Hard cap so the stub cannot grow into a stale copy of the CLI help.

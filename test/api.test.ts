@@ -47,7 +47,9 @@ describe("errors", () => {
       "AUTH_REQUIRED",
       "Not authorized: token vencido",
     );
-    expect(e.suggestions).toEqual(["Run `sosc-axi login --usuario ana@x.com --password-stdin` to refresh the session"]);
+    expect(e.suggestions).toEqual([
+      "Ask the user to run `sosc-axi login --usuario ana@x.com` in their own terminal (it prompts for the password)",
+    ]);
   });
 
   test("HTTP 200 with an error field is API_ERROR without the 'Error:' prefix", async () => {

@@ -26,6 +26,7 @@ const server = Bun.serve({
           })
         : new Response("unauthorized", { status: 401 }),
     "/cuit/credentials/:id": (req) => Response.json({ jwt: jwt(`cuit-${req.params.id}`) }),
+    "/cuit/parametros": () => Response.json({}),
   },
 });
 afterAll(() => server.stop());
@@ -44,7 +45,7 @@ beforeEach(() => {
 
 async function run(args: string[], stdin?: string) {
   const proc = Bun.spawn(["node", bin, ...args], {
-    env: { ...process.env, SOSC_AXI_HOME: home, SOSC_API_URL: server.url.href, SOSC_PASSWORD: "" },
+    env: { ...process.env, SOSC_AXI_HOME: home, SOSC_API_URL: server.url.href },
     stdin: stdin === undefined ? "ignore" : new Blob([stdin]),
     stdout: "pipe",
   });
@@ -74,10 +75,10 @@ test("unknown flags are rejected with exit 2 and valid flags listed", async () =
   expect(out).toContain("--usuario, --password-stdin");
 });
 
-test("login requires a password without prompting", async () => {
+test("login without a terminal asks for the user to log in instead of prompting", async () => {
   const { out, code } = await run(["login", "--usuario", "ana@x.com"]);
   expect(code).toBe(2);
-  expect(out).toContain("No password provided");
+  expect(out).toContain("Ask the user to run `sosc-axi login --usuario ana@x.com` in their own terminal");
 });
 
 test("bad credentials surface the API message", async () => {
@@ -111,14 +112,18 @@ test("multiple accounts, switching default, selecting CUITs, logout", async () =
 
   r = await run(["cuits", "use", "30712345671"]);
   expect(r.code).toBe(0);
-  expect(r.out).toContain("30-71234567-1 (Estudio SRL) is now active for ana@x.com");
+  expect(r.out).toContain("30712345671 (Estudio SRL) is now active for ana@x.com");
 
-  r = await run(["cuits", "use", "11", "--usuario", "bob@x.com"]);
+  r = await run(["cuits", "use", "20123456789", "--usuario", "bob@x.com"]);
   expect(r.out).toContain("is now active for bob@x.com");
 
-  r = await run(["cuits", "use", "99"]);
+  r = await run(["cuits", "use", "27999999999"]);
   expect(r.code).toBe(1);
   expect(r.out).toContain("NOT_FOUND");
+
+  r = await run(["status"]);
+  expect(r.code).toBe(0);
+  expect(r.out).toContain("30712345671 (Estudio SRL) connected");
 
   r = await run([]);
   expect(r.out).toContain("usuario: ana@x.com");

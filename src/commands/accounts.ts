@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { parse } from "../args.ts";
-import { LOGIN_HINT, resolveAccount } from "../auth.ts";
+import { loginHint, resolveAccount } from "../auth.ts";
 import { loadStore, saveStore, tokenStatus } from "../store.ts";
 import type { Command } from "./index.ts";
 
@@ -22,13 +22,13 @@ async function run(args: string[]) {
     cuit: a.cuits.find((c) => c.id === a.cuit)?.cuit ?? "",
     session: tokenStatus(a.jwt),
   }));
-  if (!rows.length) return { accounts: "0 accounts logged in", help: [LOGIN_HINT] };
+  if (!rows.length) return { accounts: "0 accounts logged in", help: [loginHint()] };
   return {
     count: `${rows.length} accounts logged in`,
     accounts: rows,
     help: [
       "Run `sosc-axi accounts use <usuario>` to switch the default account",
-      "Run `sosc-axi login --usuario <email> --password-stdin` to add another account",
+      "Run `sosc-axi login --usuario <email>` in a terminal to add another account",
     ],
   };
 }

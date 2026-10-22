@@ -2,8 +2,9 @@ import { AxiError } from "axi-sdk-js";
 import { api } from "./api.ts";
 import { type Account, type Cuit, type Store, saveStore } from "./store.ts";
 
-export const LOGIN_HINT =
-  "Run `sosc-axi login --usuario <email> --password-stdin` (password on stdin, or set SOSC_PASSWORD)";
+// Agents never handle passwords: login prompts in the user's own terminal.
+export const loginHint = (usuario?: string) =>
+  `Ask the user to run \`sosc-axi login${usuario ? ` --usuario ${usuario}` : ""}\` in their own terminal (it prompts for the password)`;
 
 /** The account selected by --usuario, or the default one. */
 export function resolveAccount(store: Store, usuario?: string): [string, Account] {
@@ -11,7 +12,7 @@ export function resolveAccount(store: Store, usuario?: string): [string, Account
   const account = name ? store.accounts[name] : undefined;
   if (!name || !account) {
     throw new AxiError(name ? `${name} is not logged in` : "No SOS Contador account is logged in", "AUTH_REQUIRED", [
-      name ? `Run \`sosc-axi login --usuario ${name} --password-stdin\`` : LOGIN_HINT,
+      loginHint(name),
     ]);
   }
   return [name, account];
@@ -30,7 +31,7 @@ export function findCuits(payload: unknown): Cuit[] {
       const nombre = o.razonsocial ?? o.razon_social ?? o.nombre;
       found.set(String(id), {
         id: String(id),
-        cuit: String(o.cuit),
+        cuit: String(o.cuit).replace(/\D/g, ""),
         nombre: nombre ? String(nombre).trim() : undefined,
       });
     }
@@ -49,7 +50,7 @@ export function token(payload: unknown, keys: string[]): string | undefined {
 }
 
 export const cuitRows = (cuits: Cuit[], active?: string) =>
-  cuits.map((c) => ({ id: c.id, cuit: c.cuit, nombre: c.nombre ?? "", active: c.id === active ? "*" : "" }));
+  cuits.map((c) => ({ cuit: c.cuit, nombre: c.nombre ?? "", active: c.id === active ? "*" : "" }));
 
 /** Fetches the per-CUIT token (jwtc) with the user token and caches it on the CUIT. */
 export async function fetchCuitToken(account: Account, cuit: Cuit, usuario: string): Promise<string> {
@@ -66,7 +67,7 @@ export async function activeCuit(store: Store, usuario?: string): Promise<[strin
   const cuit = account.cuits.find((c) => c.id === account.cuit);
   if (!cuit) {
     throw new AxiError(`No active CUIT for ${name}`, "VALIDATION_ERROR", [
-      "Run `sosc-axi cuits use <id|cuit>` to select the CUIT to work with",
+      "Run `sosc-axi cuits use <cuit>` to select the CUIT to work with",
     ]);
   }
   if (!cuit.jwtc) {

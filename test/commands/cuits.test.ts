@@ -39,8 +39,8 @@ describe("list", () => {
     expect(calls).toEqual([{ method: "GET", path: "/cuit/listado", auth: `Bearer ${JWT}`, body: undefined }]);
     expect(out.count).toBe("2 CUITs");
     expect(out.cuits).toEqual([
-      { id: "11", cuit: "20123456789", nombre: "Ana Perez", active: "*" },
-      { id: "22", cuit: "30712345671", nombre: "Estudio SRL", active: "" },
+      { cuit: "20123456789", nombre: "Ana Perez", active: "*" },
+      { cuit: "30712345671", nombre: "Estudio SRL", active: "" },
     ]);
     expect(loadStore().accounts["ana@x.com"]!.cuits.map((c) => c.jwtc)).toEqual(["cached", undefined]);
   });
@@ -63,10 +63,10 @@ describe("list", () => {
 describe("use", () => {
   const creds = (token = "jwtc-11") => ({ "GET /cuit/credentials/11": { jwt: token } });
 
-  test("selects a cached CUIT by id, fetching its credentials with the user token", async () => {
+  test("selects a cached CUIT by number, fetching its credentials with the user token", async () => {
     loggedIn();
     const calls = mockApi(creds());
-    const out = (await cuits.run(["use", "11"], undefined)) as Record<string, unknown>;
+    const out = (await cuits.run(["use", "20123456789"], undefined)) as Record<string, unknown>;
     expect(calls).toEqual([{ method: "GET", path: "/cuit/credentials/11", auth: `Bearer ${JWT}`, body: undefined }]);
     expect(out.cuit).toBe("20123456789 (Ana Perez) is now active for ana@x.com");
     const account = loadStore().accounts["ana@x.com"]!;
@@ -84,14 +84,14 @@ describe("use", () => {
   test("refetches the list when the CUIT is not cached", async () => {
     loggedIn({ cached: false });
     const calls = mockApi({ "GET /cuit/listado": LISTADO, ...creds() });
-    await cuits.run(["use", "11"], undefined);
+    await cuits.run(["use", "20123456789"], undefined);
     expect(calls.map((c) => c.path)).toEqual(["/cuit/listado", "/cuit/credentials/11"]);
   });
 
   test("re-selecting the active CUIT refreshes its credentials", async () => {
     loggedIn({ cuit: "11" });
     mockApi(creds("fresh"));
-    const out = (await cuits.run(["use", "11"], undefined)) as Record<string, unknown>;
+    const out = (await cuits.run(["use", "20123456789"], undefined)) as Record<string, unknown>;
     expect(out.cuit).toContain("is already active, credentials refreshed");
     expect(loadStore().accounts["ana@x.com"]!.cuits[0]!.jwtc).toBe("fresh");
   });
@@ -99,17 +99,26 @@ describe("use", () => {
   test("unknown CUIT is NOT_FOUND", async () => {
     loggedIn();
     mockApi({ "GET /cuit/listado": LISTADO });
-    await expectAxiError(cuits.run(["use", "99"], undefined), "NOT_FOUND", "CUIT 99 is not available for ana@x.com");
+    await expectAxiError(
+      cuits.run(["use", "27999999999"], undefined),
+      "NOT_FOUND",
+      "CUIT 27999999999 is not available for ana@x.com",
+    );
+  });
+
+  test("the internal id is not accepted", async () => {
+    loggedIn();
+    await expectAxiError(cuits.run(["use", "11"], undefined), "VALIDATION_ERROR", "11 digits");
   });
 
   test("missing credentials token is an API_ERROR", async () => {
     loggedIn();
     mockApi({ "GET /cuit/credentials/11": {} });
-    await expectAxiError(cuits.run(["use", "11"], undefined), "API_ERROR");
+    await expectAxiError(cuits.run(["use", "20123456789"], undefined), "API_ERROR");
     expect(loadStore().accounts["ana@x.com"]!.cuit).toBeUndefined();
   });
 
   test("requires a CUIT", async () => {
-    await expectAxiError(cuits.run(["use"], undefined), "VALIDATION_ERROR", "CUIT id or number is required");
+    await expectAxiError(cuits.run(["use"], undefined), "VALIDATION_ERROR", "CUIT number (11 digits) is required");
   });
 });

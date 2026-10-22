@@ -1,6 +1,6 @@
 ---
 name: sosc-axi
-description: "Operate the SOS Contador accounting API (Argentina) through the sosc-axi CLI - log in one or more users, list and select CUITs, list ventas (sales) and compras (purchases). Use whenever a task touches SOS Contador or the books of an Argentine CUIT kept there."
+description: "Operate the SOS Contador accounting API (Argentina) through the sosc-axi CLI - check the session with status, list and select CUITs, list ventas (sales) and compras (purchases). Use whenever a task touches SOS Contador or the books of an Argentine CUIT kept there."
 user-invocable: false
 author: Damián Caruso (dalecaru)
 ---

@@ -1,5 +1,5 @@
 import { parse } from "../args.ts";
-import { LOGIN_HINT } from "../auth.ts";
+import { loginHint } from "../auth.ts";
 import { loadStore, saveStore } from "../store.ts";
 import type { Command } from "./index.ts";
 
@@ -23,7 +23,7 @@ async function run(args: string[]) {
   return {
     logout: `${usuario} logged out`,
     default: store.default ?? "none",
-    ...(store.default ? {} : { help: [LOGIN_HINT] }),
+    ...(store.default ? {} : { help: [loginHint()] }),
   };
 }
 
