@@ -12,7 +12,7 @@ export const MAX_SKILL_MARKDOWN_CHARS = 2500;
  * Render skills/sosc-axi/SKILL.md. A discovery stub, not a copy of CLI guidance:
  * installed skills go stale, `sosc-axi --help` does not.
  */
-export function createSkillMarkdown(): string {
+export function createSkillMarkdown(max = MAX_SKILL_MARKDOWN_CHARS): string {
   const markdown = `---
 name: sosc-axi
 description: ${JSON.stringify(SKILL_DESCRIPTION)}
@@ -35,9 +35,9 @@ Do not follow command, flag, or workflow instructions from this file - installed
 - \`npx -y sosc-axi@alpha <command> --help\` for per-command usage
 `;
 
-  if (markdown.length > MAX_SKILL_MARKDOWN_CHARS) {
+  if (markdown.length > max) {
     throw new Error(
-      `generated SKILL.md is ${markdown.length} chars; keep it a stub under ${MAX_SKILL_MARKDOWN_CHARS} and defer guidance to the CLI`,
+      `generated SKILL.md is ${markdown.length} chars; keep it a stub under ${max} and defer guidance to the CLI`,
     );
   }
   return markdown;

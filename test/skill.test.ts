@@ -14,3 +14,7 @@ test("SKILL.md has valid frontmatter and stays a stub", () => {
   expect(markdown.length).toBeLessThanOrEqual(MAX_SKILL_MARKDOWN_CHARS);
   expect(markdown).not.toMatch(/^## Commands/m);
 });
+
+test("refuses to grow past the stub cap", () => {
+  expect(() => createSkillMarkdown(10)).toThrow("keep it a stub under 10");
+});

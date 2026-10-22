@@ -1,2 +1,4 @@
 [test]
 coverageThreshold = 0.9
+# Per-file threshold. cli.ts is wiring only, exercised by the node e2e in test/cli.test.ts.
+coveragePathIgnorePatterns = ["src/cli.ts", "test/**"]

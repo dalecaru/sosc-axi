@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { Readable } from "node:stream";
 import { login } from "../../src/commands/login.ts";
 import { loadStore } from "../../src/store.ts";
 import { expectAxiError, jwt, mockApi, seed, useSandbox } from "../helpers.ts";
@@ -51,6 +52,18 @@ describe("login", () => {
     expect(store.default).toBe("ana@x.com");
     expect(store.accounts["ana@x.com"]!.jwt).toBe(TOKEN);
     expect(readFileSync(join(process.env.SOSC_AXI_HOME!, "accounts.json"), "utf8")).not.toContain("secret");
+  });
+
+  test("--password-stdin reads the password from stdin, trimming the trailing newline", async () => {
+    const stdin = Object.getOwnPropertyDescriptor(process, "stdin")!;
+    Object.defineProperty(process, "stdin", { value: Readable.from(["sec", "ret\n"]), configurable: true });
+    try {
+      const calls = ok();
+      await login.run(["--usuario", "ana@x.com", "--password-stdin"], undefined);
+      expect(calls[0]!.body).toEqual({ usuario: "ana@x.com", password: "secret" });
+    } finally {
+      Object.defineProperty(process, "stdin", stdin);
+    }
   });
 
   test("reads the user from SOSC_USERNAME", async () => {
