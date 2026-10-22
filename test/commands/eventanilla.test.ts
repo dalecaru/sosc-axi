@@ -75,8 +75,30 @@ test("defaults to the last 30 days; says when the API narrowed the range", async
   });
 });
 
+test("--hasta alone defaults --desde to 30 days before it, never an inverted range", async () => {
+  loggedIn();
+  const calls = mockApi({
+    "GET /afip/eventanilla?desde=2026-01-01&hasta=2026-01-31": {
+      consulta: { desde: "2026-01-01", hasta: "2026-01-31" },
+      items: [],
+    },
+    "GET /afip/eventanilla?desde=2026-02-01&hasta=2026-03-03": {
+      consulta: { desde: "2026-02-01", hasta: "2026-03-03" },
+      items: [],
+    },
+  });
+  expect(await eventanilla.run(["--hasta", "2026-01-31"], undefined)).toEqual({
+    eventanilla: "0 comunicaciones in 2026-01-01 to 2026-01-31",
+  });
+  expect(await eventanilla.run(["--hasta", "2026-03-03"], undefined)).toEqual({
+    eventanilla: "0 comunicaciones in 2026-02-01 to 2026-03-03",
+  });
+  expect(calls).toHaveLength(2);
+});
+
 test.each([
   [["--desde", "01/09/2026"], "--desde must be AAAA-MM-DD"],
+  [["--hasta", "2026-13-01"], "--hasta must be AAAA-MM-DD"],
   [["--hasta", "2026"], "--hasta must be AAAA-MM-DD"],
   [["--periodo", "mes"], "unknown flag --periodo"],
 ])("rejects %p before calling the API", async (args, message) => {

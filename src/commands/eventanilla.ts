@@ -7,7 +7,7 @@ import type { Command } from "./index.ts";
 
 const help = `usage: sosc-axi eventanilla [--desde <fecha>] [--hasta <fecha>] [--usuario <email>]
 flags:
-  --desde       AAAA-MM-DD (default 30 days ago); AFIP serves at most 90 days back from --hasta
+  --desde       AAAA-MM-DD (default 30 days before --hasta); AFIP serves at most 90 days back from --hasta
   --hasta       AAAA-MM-DD (default today)
 Lists the AFIP e-ventanilla communications of the active CUIT (\`sosc-axi cuits use\` selects it).
 examples:
@@ -31,10 +31,10 @@ async function run(args: string[]) {
     hasta: { type: "string" },
     usuario: { type: "string" },
   });
-  const ago = new Date();
-  ago.setDate(ago.getDate() - 30);
-  const desde = date("desde", values.desde ?? ago.toLocaleDateString("sv-SE"));
   const hasta = date("hasta", values.hasta ?? new Date().toLocaleDateString("sv-SE"));
+  const ago = new Date(`${hasta}T00:00:00Z`);
+  ago.setUTCDate(ago.getUTCDate() - 30);
+  const desde = date("desde", values.desde ?? ago.toISOString().slice(0, 10));
 
   const [usuario, cuit, jwtc] = await activeCuit(loadStore(), values.usuario);
   const res = await api<{ consulta?: { desde?: string; hasta?: string }; items?: Comunicacion[] }>(

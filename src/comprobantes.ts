@@ -42,7 +42,8 @@ const positive = (flag: string, value: string | undefined, fallback: number) => 
 };
 
 export const date = (flag: string, value: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new AxiError(`--${flag} must be AAAA-MM-DD`, "VALIDATION_ERROR");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value)))
+    throw new AxiError(`--${flag} must be AAAA-MM-DD`, "VALIDATION_ERROR");
   return value;
 };
 
