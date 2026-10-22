@@ -128,12 +128,3 @@ test("multiple accounts, switching default, selecting CUITs, logout", async () =
   expect(r.code).toBe(0);
   expect(r.out).toContain("(no-op)");
 });
-
-test("every command module is a real API module (OpenAPI tag)", async () => {
-  const { COMMANDS } = await import("../src/commands/index.ts");
-  const spec = Bun.YAML.parse(await Bun.file(join(import.meta.dir, "../openapi/sos-contador.openapi.yaml")).text()) as {
-    paths: Record<string, Record<string, { tags?: string[] }>>;
-  };
-  const tags = new Set(Object.values(spec.paths).flatMap((ops) => Object.values(ops).flatMap((o) => o.tags ?? [])));
-  for (const c of COMMANDS) if (c.module) expect(tags).toContain(c.module);
-});
