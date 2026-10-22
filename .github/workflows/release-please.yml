@@ -26,7 +26,6 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         with:
           node-version: 24
-          registry-url: "https://registry.npmjs.org"
       - run: npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
         if: ${{ steps.release.outputs.release_created }}
       - run: bun install --frozen-lockfile && bun test && bun run build
