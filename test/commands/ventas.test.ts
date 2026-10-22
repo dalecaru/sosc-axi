@@ -153,6 +153,7 @@ describe("create", () => {
     [{ puntoventa: 0 }, "puntoventa must be a positive integer"],
     [{ cuitclipro: "20123456789" }, "cuitclipro 20123456789 is not a valid CUIT"],
     [{ cuitclipro: undefined }, "idclipro or cuitclipro is required"],
+    [{ cuitclipro: ["50000000016"] }, "is not a valid CUIT"],
     [{ cuitclipro: undefined, idclipro: {} }, "idclipro must be a numeric cliente id"],
     [{ idclipro: "abc" }, "idclipro must be a numeric cliente id"],
     [{ fecha: "22/10/2026" }, "fecha must be AAAA-MM-DD"],
@@ -173,6 +174,24 @@ describe("create", () => {
   ])("rejects %j before calling the API", async (patch, message) => {
     const calls = mockApi({});
     await expectAxiError(create(["--file", file({ ...VENTA, ...patch }), "--dry-run"]), "VALIDATION_ERROR", message);
+    expect(calls).toEqual([]);
+  });
+
+  test("rejects amounts that overflow to Infinity in the JSON", async () => {
+    const calls = mockApi({});
+    const path = file(null);
+    writeFileSync(
+      path,
+      JSON.stringify({ ...VENTA, descuento: 0, productos: [{ fc: 1, fu: 1 }], imputaciones: [{ v: 1 }] })
+        .replace('"descuento":0', '"descuento":1e400')
+        .replace('"fu":1', '"fu":1e400')
+        .replace('"v":1', '"v":1e400'),
+    );
+    await expectAxiError(
+      create(["--file", path, "--dry-run"]),
+      "VALIDATION_ERROR",
+      "descuento must be a number >= 0; productos[0].fu must be a positive number; imputaciones[0].v must be a positive number",
+    );
     expect(calls).toEqual([]);
   });
 
