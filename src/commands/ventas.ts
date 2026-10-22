@@ -76,11 +76,14 @@ function problems(v: Record<string, unknown>) {
   if (v.fecha != null && new Date(String(v.fecha)).toJSON()?.slice(0, 10) !== v.fecha) {
     out.push("fecha must be AAAA-MM-DD");
   }
+  if (v.uniqueid !== undefined && !(typeof v.uniqueid === "string" && v.uniqueid.trim())) {
+    out.push("uniqueid must be a non-empty string");
+  }
   if (v.descuento != null && !(typeof v.descuento === "number" && v.descuento >= 0)) {
     out.push("descuento must be a number >= 0");
   }
   const list = (key: string) => {
-    const l = v[key] ?? [];
+    const l = v[key] === undefined ? [] : v[key];
     if (!Array.isArray(l)) out.push(`${key} must be an array`);
     return Array.isArray(l) ? (l as unknown[]) : [];
   };
@@ -199,7 +202,7 @@ async function cae(args: string[]) {
   const [usuario, , jwtc] = await activeCuit(loadStore(), values.usuario);
   const res = await api<unknown>(`/cae/status/${id}`, { token: jwtc, usuario });
   const o = ((Array.isArray(res) ? res[0] : res) ?? {}) as Record<string, unknown>;
-  const cae = str(o.cae);
+  const cae = scalar(o.cae);
   const vencimiento = field(o, /venc|vto/i).slice(0, 10);
   const estado = field(o, /^(estado|status)$/i);
   const afip = field(o, /observ|motivo|rechazo|mensaje|errores/i);
@@ -258,17 +261,18 @@ async function email(args: string[]) {
     const found = new Set<string>();
     for (const id of ids) {
       const res = await api<{ cabecera?: { idclipro?: unknown } }>(`/venta/detalle/${id}`, { token: jwtc, usuario });
-      found.add(str(res?.cabecera?.idclipro));
+      const idclipro = scalar(res?.cabecera?.idclipro);
+      if (!/^\d+$/.test(idclipro)) {
+        throw new AxiError(`SOS Contador returned no cliente for venta ${id}`, "VALIDATION_ERROR", [
+          "Pass the cliente id with `--cliente <idcliente>` (`sosc-axi clientes` lists them)",
+        ]);
+      }
+      found.add(idclipro);
     }
     if (found.size > 1) {
       throw new AxiError("the ventas belong to different clientes, email them separately", "VALIDATION_ERROR");
     }
     cliente = [...found][0];
-    if (!cliente) {
-      throw new AxiError("SOS Contador returned no cliente for the venta", "VALIDATION_ERROR", [
-        "Pass the cliente id with `--cliente <idcliente>` (`sosc-axi clientes` lists them)",
-      ]);
-    }
   }
 
   await api("/email/enviar", {

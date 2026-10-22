@@ -161,6 +161,10 @@ describe("create", () => {
     [{ productos: [null] }, "productos[0] must be an object"],
     [{ imputaciones: "neto" }, "imputaciones must be an array"],
     [{ productos: undefined, imputaciones: [null] }, "imputaciones[0] must be an object"],
+    [{ productos: null, imputaciones: [{ v: 100 }] }, "productos must be an array"],
+    [{ imputaciones: null }, "imputaciones must be an array"],
+    [{ uniqueid: { a: 1 } }, "uniqueid must be a non-empty string"],
+    [{ uniqueid: " " }, "uniqueid must be a non-empty string"],
   ])("rejects %j before calling the API", async (patch, message) => {
     const calls = mockApi({});
     await expectAxiError(create(["--file", file({ ...VENTA, ...patch }), "--dry-run"]), "VALIDATION_ERROR", message);
@@ -293,10 +297,12 @@ describe("email", () => {
       "GET /venta/detalle/5": { cabecera: { idclipro: 77 } },
       "GET /venta/detalle/6": { cabecera: { idclipro: 78 } },
       "GET /venta/detalle/7": { cabecera: {} },
+      "GET /venta/detalle/8": { cabecera: { idclipro: { id: 77 } } },
     });
     await expectAxiError(ventas.run(["email", "5", "6"], undefined), "VALIDATION_ERROR", "different clientes");
     const e = await expectAxiError(ventas.run(["email", "7"], undefined), "VALIDATION_ERROR", "no cliente");
     expect(e.suggestions.join()).toContain("--cliente");
+    await expectAxiError(ventas.run(["email", "8"], undefined), "VALIDATION_ERROR", "no cliente for venta 8");
   });
 
   test("validates ids, --cliente and --email", async () => {
