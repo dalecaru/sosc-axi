@@ -1,8 +1,10 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { accounts } from "./accounts.ts";
+import { compras } from "./compras.ts";
 import { cuits } from "./cuits.ts";
 import { login } from "./login.ts";
 import { logout } from "./logout.ts";
+import { ventas } from "./ventas.ts";
 
 export type Command = {
   name: string;
@@ -16,4 +18,4 @@ export type Command = {
 };
 
 // One file per command. Add a command: create src/commands/<name>.ts, register it here.
-export const COMMANDS: Command[] = [login, logout, accounts, cuits];
+export const COMMANDS: Command[] = [login, logout, accounts, cuits, ventas, compras];

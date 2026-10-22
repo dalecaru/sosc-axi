@@ -18,7 +18,10 @@ test("default account with an active CUIT", () => {
     session: "unknown expiry",
     cuit: "20123456789 (Ana)",
     accounts: "1 logged in",
-    help: ["Run `sosc-axi cuits` to list or switch CUITs"],
+    help: [
+      "Run `sosc-axi ventas` or `sosc-axi compras` to list invoices",
+      "Run `sosc-axi cuits` to list or switch CUITs",
+    ],
   });
 });
 
