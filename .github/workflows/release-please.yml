@@ -34,4 +34,9 @@ jobs:
       - run: |
           TAG=$(node -p "(require('./package.json').version.match(/-([a-z]+)/) || [, 'latest'])[1]")
           npm publish --provenance --access public --tag "$TAG"
+          # No stable release yet: keep `latest` on the newest prerelease so the npm page shows it.
+          VERSION=$(node -p "require('./package.json').version")
+          case "$(npm view sosc-axi dist-tags.latest)" in
+            *-*) npm dist-tag add "sosc-axi@$VERSION" latest ;;
+          esac
         if: ${{ steps.release.outputs.release_created }}
