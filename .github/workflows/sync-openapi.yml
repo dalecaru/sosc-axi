@@ -18,7 +18,7 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun run sync:openapi
-      - uses: peter-evans/create-pull-request@v7
+      - uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/sync-openapi
           commit-message: "chore: sync OpenAPI spec with upstream Postman collection"
