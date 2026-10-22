@@ -53,8 +53,10 @@ async function run(args: string[]) {
         `/cliente/listado?pagina=${p}&registros=500&${side}=true`,
         { token: jwtc, usuario },
       );
-      for (const c of Array.isArray(page?.items) ? page.items : []) seen.add(str(c.id));
-      total = num(page?.paginas);
+      const rows = Array.isArray(page?.items) ? page.items : [];
+      for (const c of rows) seen.add(str(c.id));
+      // An empty page ends the list even if paginas claims more.
+      total = rows.length ? num(page?.paginas) : 0;
     }
     return seen;
   };

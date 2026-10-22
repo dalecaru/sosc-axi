@@ -55,6 +55,22 @@ test("labels ambos for ids in both lists, even when they sit on different pages"
   ]);
 });
 
+test("stops paging a side list at its first empty page, whatever paginas claims", async () => {
+  loggedIn();
+  const calls = mockApi({
+    "GET /cliente/listado?pagina=1&registros=50&cliente=true&proveedor=true": {
+      paginas: 1,
+      items: [{ id: 5, cuit: "1", clipro: "Ana" }],
+    },
+    "GET /cliente/listado?pagina=1&registros=500&cliente=true": { paginas: 1e9, items: [{ id: 5 }] },
+    "GET /cliente/listado?pagina=2&registros=500&cliente=true": { paginas: 1e9, items: [] },
+    "GET /cliente/listado?pagina=1&registros=500&proveedor=true": { paginas: 1, items: [] },
+  });
+  const out = (await clientes.run([], undefined)) as Record<string, unknown>;
+  expect(out.clientes).toEqual([{ id: "5", cuit: "1", nombre: "Ana", tipo: "cliente" }]);
+  expect(calls).toHaveLength(4);
+});
+
 test("--tipo proveedor asks only for proveedores and labels them so", async () => {
   loggedIn();
   mockApi({
