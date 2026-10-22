@@ -66,6 +66,7 @@ describe("listado", () => {
     [["--periodo", "mes", "--desde", "2026-01-01"], "not both"],
     [["--desde", "2026-01-01"], "--desde and --hasta go together"],
     [["--desde", "01/01/2026", "--hasta", "2026-01-31"], "--desde must be AAAA-MM-DD"],
+    [["--desde", "2026-02-01", "--hasta", "2026-02-30"], "--hasta must be AAAA-MM-DD"],
     [["--pagina", "0"], "--pagina must be a positive integer"],
     [["--registros", "x"], "--registros must be a positive integer"],
   ])("rejects %p before calling the API", async (args, message) => {
@@ -184,6 +185,7 @@ describe("periodoFiscal", () => {
   test.each([
     [{ ejercicio: "26" }, "--ejercicio must be AAAA"],
     [{ anio: "abcd" }, "--anio must be AAAA"],
+    [{ ejercicio: "2025", anio: "2026" }, "--anio requires --mes"],
     [{ mes: "9" }, "--mes must be MM (01-12)"],
     [{ mes: "13" }, "--mes must be MM (01-12)"],
     [{ mes: "00" }, "--mes must be MM (01-12)"],

@@ -111,6 +111,7 @@ test("nothing declared is an empty state", async () => {
 test.each([
   [["--mes", "13"], "--mes must be MM"],
   [["--anio", "26"], "--anio must be AAAA"],
+  [["--anio", "2026"], "--anio requires --mes"],
   [["ventas"], "unexpected argument ventas"],
 ])("rejects %p before calling the API", async (args, message) => {
   loggedIn();

@@ -42,8 +42,9 @@ const positive = (flag: string, value: string | undefined, fallback: number) => 
 };
 
 export const date = (flag: string, value: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value)))
+  if (new Date(value).toJSON()?.slice(0, 10) !== value) {
     throw new AxiError(`--${flag} must be AAAA-MM-DD`, "VALIDATION_ERROR");
+  }
   return value;
 };
 
@@ -148,6 +149,7 @@ const year = (flag: string, value: string) => {
 export function periodoFiscal(v: { ejercicio?: string; anio?: string; mes?: string }) {
   const ejercicio = year("ejercicio", v.ejercicio ?? String(new Date().getFullYear()));
   const anio = year("anio", v.anio ?? ejercicio);
+  if (v.anio !== undefined && v.mes === undefined) throw new AxiError("--anio requires --mes", "VALIDATION_ERROR");
   if (v.mes !== undefined && !/^(0[1-9]|1[0-2])$/.test(v.mes)) {
     throw new AxiError("--mes must be MM (01-12)", "VALIDATION_ERROR");
   }

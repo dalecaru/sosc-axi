@@ -99,6 +99,8 @@ test("--hasta alone defaults --desde to 30 days before it, never an inverted ran
 test.each([
   [["--desde", "01/09/2026"], "--desde must be AAAA-MM-DD"],
   [["--hasta", "2026-13-01"], "--hasta must be AAAA-MM-DD"],
+  [["--hasta", "2026-02-30"], "--hasta must be AAAA-MM-DD"],
+  [["--desde", "2026-02-30", "--hasta", "2026-03-31"], "--desde must be AAAA-MM-DD"],
   [["--hasta", "2026"], "--hasta must be AAAA-MM-DD"],
   [["--periodo", "mes"], "unknown flag --periodo"],
 ])("rejects %p before calling the API", async (args, message) => {
