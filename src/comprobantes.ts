@@ -130,7 +130,9 @@ export async function listado(opts: {
         fecha_hasta: to,
         ...numeros(v.numero),
         ...(v.puntoventa !== undefined ? { sucursal: ids("puntoventa", v.puntoventa) } : {}),
-        ...(v.tipo !== undefined ? { tipo_factura: v.tipo.split(",").map((t) => oneOf("tipo", t, opts.consulta!.tipos)) } : {}),
+        ...(v.tipo !== undefined
+          ? { tipo_factura: v.tipo.split(",").map((t) => oneOf("tipo", t, opts.consulta!.tipos)) }
+          : {}),
         ...(v[party] !== undefined ? { idclipro: ids(party, v[party]) } : {}),
       }
     : undefined;
