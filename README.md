@@ -111,6 +111,8 @@ sosc-axi productos                                # id, price and IVA rate
 sosc-axi puntosventa                              # number and name
 ```
 
+Without `--tipo`, `clientes` also reads both side lists in full to label rows, so it makes extra API calls. Above 25,000 rows per side it fails with `API_ERROR`; pass `--tipo` then.
+
 ## API spec
 
 `openapi/sos-contador.openapi.yaml` is generated from the [official Postman documentation](https://documenter.getpostman.com/view/1566360/SWTD6vnC?version=latest), whose raw collection is kept next to it. Do not edit either file by hand.
