@@ -1,5 +1,6 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { accounts } from "./accounts.ts";
+import { clientes } from "./clientes.ts";
 import { cobros } from "./cobros.ts";
 import { compras } from "./compras.ts";
 import { cuentacorriente } from "./cuentacorriente.ts";
@@ -10,6 +11,8 @@ import { libroiva } from "./libroiva.ts";
 import { login } from "./login.ts";
 import { logout } from "./logout.ts";
 import { pagos } from "./pagos.ts";
+import { productos } from "./productos.ts";
+import { puntosventa } from "./puntosventa.ts";
 import { recibos } from "./recibos.ts";
 import { status } from "./status.ts";
 import { ventas } from "./ventas.ts";
@@ -41,4 +44,7 @@ export const COMMANDS: Command[] = [
   libroiva,
   iva,
   eventanilla,
+  clientes,
+  productos,
+  puntosventa,
 ];

@@ -35,7 +35,7 @@ export function oneOf(flag: string, value: string | undefined, allowed: string[]
   return value;
 }
 
-const positive = (flag: string, value: string | undefined, fallback: number) => {
+export const positive = (flag: string, value: string | undefined, fallback: number) => {
   if (value === undefined) return fallback;
   if (!/^[1-9]\d*$/.test(value)) throw new AxiError(`--${flag} must be a positive integer`, "VALIDATION_ERROR");
   return Number(value);
