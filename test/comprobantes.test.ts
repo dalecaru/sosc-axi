@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { detalle, listado } from "../src/comprobantes.ts";
+import { detalle, listado, periodoFiscal } from "../src/comprobantes.ts";
 import { expectAxiError, mockApi, seed, useSandbox } from "./helpers.ts";
 
 useSandbox();
@@ -66,6 +66,7 @@ describe("listado", () => {
     [["--periodo", "mes", "--desde", "2026-01-01"], "not both"],
     [["--desde", "2026-01-01"], "--desde and --hasta go together"],
     [["--desde", "01/01/2026", "--hasta", "2026-01-31"], "--desde must be AAAA-MM-DD"],
+    [["--desde", "2026-02-01", "--hasta", "2026-02-30"], "--hasta must be AAAA-MM-DD"],
     [["--pagina", "0"], "--pagina must be a positive integer"],
     [["--registros", "x"], "--registros must be a positive integer"],
   ])("rejects %p before calling the API", async (args, message) => {
@@ -163,5 +164,36 @@ describe("detalle", () => {
 
   test.each([[[]], [["abc"]]])("requires a numeric id (%p)", async (args) => {
     await expectAxiError(view(args), "VALIDATION_ERROR", "numeric compras id is required");
+  });
+});
+
+describe("periodoFiscal", () => {
+  test("defaults to the whole current year (mes 00)", () => {
+    const year = String(new Date().getFullYear());
+    expect(periodoFiscal({})).toEqual({ ejercicio: year, query: `anio=${year}&mes=00`, when: year });
+  });
+
+  test("--mes narrows to one month of the ejercicio; --anio picks its calendar year", () => {
+    expect(periodoFiscal({ ejercicio: "2025", mes: "09" })).toEqual({
+      ejercicio: "2025",
+      query: "anio=2025&mes=09",
+      when: "2025-09",
+    });
+    expect(periodoFiscal({ ejercicio: "2025", anio: "2026", mes: "01" }).query).toBe("anio=2026&mes=01");
+  });
+
+  test.each([
+    [{ ejercicio: "26" }, "--ejercicio must be AAAA"],
+    [{ anio: "abcd" }, "--anio must be AAAA"],
+    [{ ejercicio: "2025", anio: "2026" }, "--anio requires --mes"],
+    [{ mes: "9" }, "--mes must be MM (01-12)"],
+    [{ mes: "13" }, "--mes must be MM (01-12)"],
+    [{ mes: "00" }, "--mes must be MM (01-12)"],
+  ])("rejects %p", async (values, message) => {
+    await expectAxiError(
+      Promise.resolve().then(() => periodoFiscal(values)),
+      "VALIDATION_ERROR",
+      message,
+    );
   });
 });

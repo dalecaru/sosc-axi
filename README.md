@@ -69,7 +69,20 @@ sosc-axi cuentacorriente --proveedores --pendientes    # unmatched supplier move
 sosc-axi cuentacorriente --clipro 25101884 --desde 2025-01-01   # movements with a running saldo
 ```
 
-`--desde` defaults to January 1 of this year and `--hasta` to today; earlier movements fold into a "Saldo anterior" row. `sosc-axi <command> --help` lists every flag.
+`--desde` defaults to January 1 of this year and `--hasta` to today; earlier movements fold into a "Saldo anterior" row.
+
+## IVA and AFIP e-ventanilla
+
+Tax reports and the AFIP inbox for the active CUIT:
+
+```sh
+sosc-axi libroiva ventas --mes 09                 # Libro IVA Ventas of September, with totals
+sosc-axi libroiva compras --ejercicio 2025        # the whole 2025 ejercicio
+sosc-axi iva --mes 09                             # F2002: débito, crédito, retenciones and percepciones
+sosc-axi eventanilla                              # AFIP communications of the last 30 days
+```
+
+`--ejercicio` defaults to this year and `--mes` (01-12) narrows it to one month. AFIP serves e-ventanilla at most 90 days back from `--hasta`. `sosc-axi <command> --help` lists every flag.
 
 ## API spec
 
