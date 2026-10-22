@@ -49,12 +49,26 @@ describe("request", () => {
     expect(await api("/txt")).toBe("plain");
     expect(await api("/empty")).toBeNull();
   });
+
+  test("binary returns non-JSON bodies as bytes, still parsing JSON and errors", async () => {
+    const pdf = Buffer.from([0x25, 0x50, 0x44, 0x46, 0xff, 0x00, 0xe2]);
+    mockApi({ "GET /pdf": new Response(pdf), "GET /json": { a: 1 }, "GET /err": { error: "Error: no existe" } });
+    expect(await api("/pdf", { binary: true })).toEqual(pdf);
+    expect(await api("/json", { binary: true })).toEqual({ a: 1 });
+    await expectAxiError(api("/err", { binary: true }), "API_ERROR", "no existe");
+  });
 });
 
 describe("errors", () => {
   test("network failure is NETWORK_ERROR", async () => {
     spyOn(globalThis, "fetch").mockRejectedValue(new Error("ECONNREFUSED"));
     await expectAxiError(api("/x"), "NETWORK_ERROR", "Could not reach the SOS Contador API (ECONNREFUSED)");
+  });
+
+  test("a body cut off mid-read is NETWORK_ERROR", async () => {
+    const body = new ReadableStream({ pull: (c) => c.error(new TypeError("terminated")) });
+    spyOn(globalThis, "fetch").mockResolvedValue(new Response(body));
+    await expectAxiError(api("/x"), "NETWORK_ERROR", "Could not reach the SOS Contador API (terminated)");
   });
 
   test.each([401, 403])("HTTP %d is AUTH_REQUIRED with a re-login hint for the user", async (status) => {
@@ -95,4 +109,20 @@ test("SOSC_DEBUG logs to stderr with tokens redacted", async () => {
   expect(out).toContain('"jwt":"<redacted>"');
   expect(out).toContain('"jwtc":"<redacted>"');
   expect(out).not.toContain("secret");
+});
+
+test("SOSC_DEBUG logs binary bodies by size only", async () => {
+  process.env.SOSC_DEBUG = "1";
+  const stderr = spyOn(process.stderr, "write").mockReturnValue(true);
+  mockApi({ "GET /pdf": new Response("%PDF-1.4 bytes") });
+  await api("/pdf", { binary: true });
+  expect(String(stderr.mock.calls[0]![0])).toBe("[sosc-axi] GET /pdf -> 200\n<14 bytes>\n");
+});
+
+test("SOSC_DEBUG logs a JSON answer to a binary request by size only", async () => {
+  process.env.SOSC_DEBUG = "1";
+  const stderr = spyOn(process.stderr, "write").mockReturnValue(true);
+  mockApi({ "GET /pdf": { error: "Error: secret detail" } });
+  await expectAxiError(api("/pdf", { binary: true }), "API_ERROR", "secret detail");
+  expect(String(stderr.mock.calls[0]![0])).toBe("[sosc-axi] GET /pdf -> 200\n<32 bytes>\n");
 });

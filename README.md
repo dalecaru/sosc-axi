@@ -59,6 +59,22 @@ sosc-axi recibos                                  # receipts, list only
 
 `--periodo` is `hoy`, `ayer`, `semana`, `mes` (default) or `mes_anterior`; for ventas and compras `--desde/--hasta` (AAAA-MM-DD) selects a range instead (the API has no range for cobros, pagos and recibos).
 
+## Issuing ventas
+
+`ventas create` issues a real fiscal document (factura, nota de crédito or nota de débito) from a JSON body shaped like `PUT /venta` in the [API docs](#api-spec). It is validated before anything is sent:
+
+```sh
+sosc-axi ventas create --file venta.json --dry-run   # validate and show the request, send nothing
+sosc-axi ventas create --file venta.json --cae       # create it and ask AFIP for the CAE
+cat venta.json | sosc-axi ventas create --file -     # from stdin, saved without CAE
+sosc-axi ventas cae 933742304                        # CAE, its expiry and any AFIP observation
+sosc-axi ventas pdf 933742304                        # saves 933742304.pdf (--output <file>, - for stdout)
+sosc-axi ventas email 933742304 933742305            # to the email on file of their cliente
+sosc-axi ventas email 933742304 --email ana@example.com
+```
+
+Each venta gets a `uniqueid` (a fresh UUID unless the JSON has one), so retrying with the same one does not create it twice. Use a test CUIT while trying this out.
+
 ## Cuenta corriente
 
 Balances per cliente or proveedor for the active CUIT, and the movements of one:

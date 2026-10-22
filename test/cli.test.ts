@@ -5,6 +5,8 @@ import { join } from "node:path";
 
 const jwt = (sub: string) => `h.${Buffer.from(JSON.stringify({ sub, exp: 4102444800 })).toString("base64url")}.s`;
 
+const PDF = Buffer.from("%PDF-1.4\n\xff\x00binary\n%%EOF");
+
 const server = Bun.serve({
   port: 0,
   routes: {
@@ -34,6 +36,7 @@ const server = Bun.serve({
           ? { items: [{ idclipro: "7", clipro: "30712345671 Estudio SRL", montodebe: 10, montohaber: 4 }] }
           : { error: "Error: no body" },
       ),
+    "/venta/pdf/:id": () => new Response(PDF),
   },
 });
 afterAll(() => server.stop());
@@ -51,13 +54,18 @@ beforeEach(() => {
 });
 
 async function run(args: string[], stdin?: string) {
+  const { bytes, code } = await runBytes(args, stdin);
+  return { out: bytes.toString(), code };
+}
+
+async function runBytes(args: string[], stdin?: string) {
   const proc = Bun.spawn(["node", bin, ...args], {
     env: { ...process.env, SOSC_AXI_HOME: home, SOSC_API_URL: server.url.href },
     stdin: stdin === undefined ? "ignore" : new Blob([stdin]),
     stdout: "pipe",
   });
-  const out = await new Response(proc.stdout).text();
-  return { out, code: await proc.exited };
+  const bytes = Buffer.from(await new Response(proc.stdout).arrayBuffer());
+  return { bytes, code: await proc.exited };
 }
 
 const login = (usuario: string) => run(["login", "--usuario", usuario, "--password-stdin"], "secret\n");
@@ -150,4 +158,20 @@ test("cuentacorriente sends its filters as a GET body on Node", async () => {
   expect(code).toBe(0);
   expect(out).toContain("1 clientes in 2026-01-01 to 2026-01-31");
   expect(out).toContain("Estudio SRL");
+});
+
+test("ventas create reads the venta from stdin with --file -", async () => {
+  const venta = { cuitclipro: "50000000016", fcncnd: "F", letra: "C", puntoventa: 1, imputaciones: [{ v: 1 }] };
+  const { out, code } = await run(["ventas", "create", "--file", "-", "--dry-run"], JSON.stringify(venta));
+  expect(code).toBe(0);
+  expect(out).toContain("PUT /venta (dry run, nothing sent)");
+  expect(out).toContain("50000000016");
+});
+
+test("ventas pdf --output - writes the PDF bytes to stdout", async () => {
+  await login("ana@x.com");
+  await run(["cuits", "use", "30712345671"]);
+  const { bytes, code } = await runBytes(["ventas", "pdf", "5", "--output", "-"]);
+  expect(code).toBe(0);
+  expect(bytes.subarray(0, PDF.length)).toEqual(PDF);
 });

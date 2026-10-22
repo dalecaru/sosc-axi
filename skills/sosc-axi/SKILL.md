@@ -1,6 +1,6 @@
 ---
 name: sosc-axi
-description: "Operate the SOS Contador accounting API (Argentina) through the sosc-axi CLI - check the session with status, list and select CUITs, list ventas (sales), compras (purchases), cobros (collections), pagos (payments) and recibos (receipts), read the cuenta corriente (balances) of clientes and proveedores, the libro IVA, the IVA F2002 and the AFIP e-ventanilla inbox, and list clientes, proveedores, productos and puntos de venta. Use whenever a task touches SOS Contador or the books of an Argentine CUIT kept there."
+description: "Operate the SOS Contador accounting API (Argentina) through the sosc-axi CLI - check the session with status, list and select CUITs, list ventas (sales) and issue them (create with CAE, PDF, email), compras (purchases), cobros (collections), pagos (payments) and recibos (receipts), read the cuenta corriente (balances) of clientes and proveedores, the libro IVA, the IVA F2002 and the AFIP e-ventanilla inbox, and list clientes, proveedores, productos and puntos de venta. Use whenever a task touches SOS Contador or the books of an Argentine CUIT kept there."
 user-invocable: false
 author: Damián Caruso (dalecaru)
 ---

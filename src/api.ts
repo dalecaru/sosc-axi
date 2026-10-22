@@ -5,7 +5,14 @@ import { loginHint } from "./auth.ts";
 
 const BASE = "https://api.sos-contador.com/api-comunidad";
 
-export type RequestOptions = { method?: string; token?: string; body?: unknown; usuario?: string };
+export type RequestOptions = {
+  method?: string;
+  token?: string;
+  body?: unknown;
+  usuario?: string;
+  /** Return a non-JSON body as a Buffer (PDFs) instead of text. */
+  binary?: boolean;
+};
 
 /** Calls the SOS Contador API and returns parsed JSON, translating failures into AxiErrors. */
 export async function api<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
@@ -20,23 +27,27 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
     body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
   };
   let res: Response;
+  let bytes: Buffer;
   try {
     res = await (method === "GET" && init.body !== undefined ? getWithBody(url, init) : fetch(url, init));
+    bytes = Buffer.from(await res.arrayBuffer());
   } catch (error) {
     throw new AxiError(`Could not reach the SOS Contador API (${(error as Error).message})`, "NETWORK_ERROR", [
       "Check the network connection and retry",
     ]);
   }
 
-  const raw = await res.text();
+  const raw = bytes.toString();
   let data: unknown = raw;
   try {
     data = raw ? JSON.parse(raw) : null;
   } catch {
     // non-JSON body, keep raw text
   }
+  const binary = opts.binary && typeof data === "string";
   if (process.env.SOSC_DEBUG) {
-    process.stderr.write(`[sosc-axi] ${method} ${path} -> ${res.status}\n${redact(raw)}\n`);
+    const shown = opts.binary ? `<${bytes.length} bytes>` : redact(raw);
+    process.stderr.write(`[sosc-axi] ${method} ${path} -> ${res.status}\n${shown}\n`);
   }
 
   if (res.status === 401 || res.status === 403) {
@@ -49,7 +60,7 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
   if (!res.ok || bodyError) {
     throw new AxiError(`SOS Contador: ${apiMessage(data) ?? `HTTP ${res.status}`}`, "API_ERROR");
   }
-  return data as T;
+  return (binary ? bytes : data) as T;
 }
 
 /** fetch refuses a body on GET, but /cuentacorriente/listado only reads its filters from one. */
