@@ -20,6 +20,16 @@ test("lists purchases of the month, naming the proveedor", async () => {
   expect(out.compras[0]!.proveedor).toBe("TELECOM");
 });
 
+test("filters search /compra/consulta by proveedor and tipo R", async () => {
+  loggedIn();
+  const calls = mockApi({ "POST /compra/consulta?pagina=1&registros=50": { items: [{ id: 1 }] } });
+  await compras.run(
+    ["--proveedor", "8769368", "--tipo", "R", "--desde", "2026-01-01", "--hasta", "2026-01-31"],
+    undefined,
+  );
+  expect(calls[0]!.body).toMatchObject({ idclipro: [8769368], tipo_factura: ["R"] });
+});
+
 test("has no --modo flag", async () => {
   loggedIn();
   await expectAxiError(compras.run(["--modo", "facturas"], undefined), "VALIDATION_ERROR", "unknown flag --modo");
