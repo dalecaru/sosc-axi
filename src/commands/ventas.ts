@@ -14,6 +14,8 @@ const CAES = ["todas", "concae", "sincae"];
 
 const help = `usage: sosc-axi ventas [--modo <modo>] [--cae <filtro>] [--periodo <periodo> | --desde <fecha> --hasta <fecha>]
                      [--pagina <n>] [--registros <n>] [--usuario <email>]
+       sosc-axi ventas [--numero <n>[-<n>]] [--puntoventa <n>,...] [--tipo <tipo>,...] [--cliente <id>,...]
+                     [--desde <fecha> --hasta <fecha>] [--pagina <n>] [--registros <n>] [--usuario <email>]
        sosc-axi ventas view <id> [--usuario <email>]
        sosc-axi ventas create --file <venta.json | -> [--cae] [--dry-run] [--usuario <email>]
        sosc-axi ventas cae <id> [--usuario <email>]
@@ -26,12 +28,17 @@ flags:
   --desde/--hasta AAAA-MM-DD date range, instead of --periodo
   --pagina      page number (default 1)
   --registros   rows per page (default 50)
+  --numero      número or range, e.g. 102 or 100-110
+  --puntoventa  punto de venta numbers, comma-separated
+  --tipo        F, NC, ND, comma-separated
+  --cliente     listing: cliente ids (\`sosc-axi clientes\`); email: cliente id, instead of looking it up
   --file        JSON body of the venta (PUT /venta in the API docs), - reads stdin
   --dry-run     validate and print the request without sending it
   --output      PDF file (default <id>.pdf), - writes to stdout
   --email       recipient (default the email on file of the cliente)
-  --cliente     cliente id, instead of looking it up from the ventas
 Lists the sales of the active CUIT (\`sosc-axi cuits use\` selects it).
+--numero, --puntoventa, --tipo and --cliente search the dates of --desde/--hasta (default this month),
+without --periodo, --modo or --cae.
 \`create\` issues a real fiscal document: try --dry-run first. Without --cae the venta is saved
 without a CAE; \`uniqueid\` (generated unless the JSON has one) keeps a retry from creating it twice.
 JSON: idtipo_operacion, fecha, idclipro or cuitclipro, fcncnd (F, NC, ND), letra, puntoventa,
@@ -41,6 +48,8 @@ examples:
   sosc-axi ventas
   sosc-axi ventas --periodo mes_anterior --cae sincae
   sosc-axi ventas --modo notascredito --desde 2026-01-01 --hasta 2026-03-31
+  sosc-axi ventas --cliente 25101884 --desde 2026-01-01 --hasta 2026-06-30
+  sosc-axi ventas --puntoventa 5 --tipo F --numero 100-110
   sosc-axi ventas view 933742304
   sosc-axi ventas create --file venta.json --dry-run
   sosc-axi ventas create --file venta.json --cae
@@ -329,6 +338,7 @@ export const ventas: Command = {
           party: "cliente",
           args,
           flags: { modo: { type: "string" }, cae: { type: "string" } },
+          consulta: { path: "/venta/consulta", tipos: FCNCND },
           path: (periodo, v) =>
             `/venta/listado/${oneOf("modo", v.modo, MODOS) ?? "facturas"}/${periodo}/${oneOf("cae", v.cae, CAES) ?? "todas"}`,
         });

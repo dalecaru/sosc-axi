@@ -48,6 +48,19 @@ export const date = (flag: string, value: string) => {
   return value;
 };
 
+const STRING = { type: "string" } as const;
+
+/** Comma-separated positive integers: --puntoventa 5,6, --cliente 582660. */
+const ids = (flag: string, value: string) => value.split(",").map((x) => positive(flag, x, 0));
+
+/** --numero 102 or 100-110 as numero_desde/numero_hasta. */
+function numeros(value: string | undefined) {
+  if (value === undefined) return {};
+  const m = /^([1-9]\d*)(?:-([1-9]\d*))?$/.exec(value);
+  if (!m) throw new AxiError("--numero must be <n> or <desde>-<hasta>", "VALIDATION_ERROR");
+  return { numero_desde: Number(m[1]), numero_hasta: Number(m[2] ?? m[1]) };
+}
+
 /**
  * GET listing shared by ventas, compras, cobros, pagos and recibos: `{base}/{periodo}{suffix}` with paging
  * and an optional date range. All return `{items: [...]}` without a total, so a full page hints the next one.
@@ -63,11 +76,29 @@ export async function listado(opts: {
   cae?: false;
   flags?: Record<string, { type: "string" }>;
   path: (periodo: string, values: Record<string, string | undefined>) => string;
+  /** POST search behind --numero, --puntoventa, --tipo and --cliente/--proveedor; same rows as the listing. */
+  consulta?: { path: string; tipos: string[] };
 }) {
   const { command, party } = opts;
   const { desde, hasta, ...noRange } = LISTADO_FLAGS;
-  const { values } = parse(command, opts.args, { ...(opts.range === false ? noRange : LISTADO_FLAGS), ...opts.flags });
+  const filters = opts.consulta
+    ? { numero: STRING, puntoventa: STRING, tipo: STRING, [party]: STRING }
+    : ({} as Record<string, typeof STRING>);
+  const { values } = parse(command, opts.args, {
+    ...(opts.range === false ? noRange : LISTADO_FLAGS),
+    ...opts.flags,
+    ...filters,
+  });
   const v = values as Record<string, string | undefined>;
+  const filtered = Object.keys(filters).some((k) => v[k] !== undefined);
+  const clash = filtered && ["periodo", ...Object.keys(opts.flags ?? {})].find((k) => v[k] !== undefined);
+  if (clash) {
+    throw new AxiError(
+      `--${clash} can't be combined with --numero, --puntoventa, --tipo or --${party}`,
+      "VALIDATION_ERROR",
+      ["Use --desde/--hasta for the dates"],
+    );
+  }
   const range = v.desde !== undefined || v.hasta !== undefined;
   if (range && v.periodo !== undefined) {
     throw new AxiError("use --periodo or --desde/--hasta, not both", "VALIDATION_ERROR");
@@ -80,19 +111,42 @@ export async function listado(opts: {
   const periodo = range ? "entre_fechas" : (oneOf("periodo", v.periodo, PERIODOS) ?? "mes");
   const pagina = positive("pagina", v.pagina, 1);
   const registros = positive("registros", v.registros, 50);
-
-  const query = new URLSearchParams({ pagina: String(pagina), registros: String(registros) });
-  if (range) {
-    query.set("fecha_desde", date("desde", v.desde!));
-    query.set("fecha_hasta", date("hasta", v.hasta!));
+  let [from, to] = range ? [date("desde", v.desde!), date("hasta", v.hasta!)] : [];
+  if (filtered && !range) {
+    // consulta requires dates: default to this month, like --periodo mes. sv-SE formats the local date as AAAA-MM-DD.
+    to = new Date().toLocaleDateString("sv-SE");
+    from = `${to.slice(0, 8)}01`;
   }
 
-  const path = `${opts.path(periodo, v)}?${query}`;
+  // The API reads pagina as a 1-based row offset, not a page number.
+  const query = new URLSearchParams({ pagina: String((pagina - 1) * registros + 1), registros: String(registros) });
+  if (range && !filtered) {
+    query.set("fecha_desde", from!);
+    query.set("fecha_hasta", to!);
+  }
+  const body = filtered
+    ? {
+        fecha_desde: from,
+        fecha_hasta: to,
+        ...numeros(v.numero),
+        ...(v.puntoventa !== undefined ? { sucursal: ids("puntoventa", v.puntoventa) } : {}),
+        ...(v.tipo !== undefined
+          ? { tipo_factura: v.tipo.split(",").map((t) => oneOf("tipo", t, opts.consulta!.tipos)) }
+          : {}),
+        ...(v[party] !== undefined ? { idclipro: ids(party, v[party]) } : {}),
+      }
+    : undefined;
+
+  const path = `${filtered ? opts.consulta!.path : opts.path(periodo, v)}?${query}`;
   const store = loadStore();
   const [usuario, cuit, jwtc] = await activeCuit(store, v.usuario);
-  const res = await api<{ items?: Comprobante[] }>(path, { token: jwtc, usuario });
+  const res = await api<{ items?: Comprobante[] }>(path, {
+    token: jwtc,
+    usuario,
+    ...(body ? { method: "POST", body } : {}),
+  });
   const items = Array.isArray(res?.items) ? res.items : [];
-  const when = range ? `${v.desde} to ${v.hasta}` : periodo;
+  const when = from ? `${from} to ${to}` : periodo;
 
   if (!items.length) {
     return { [command]: pagina > 1 ? `0 ${command} on page ${pagina} (${when})` : `0 ${command} in ${when}` };

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, setSystemTime, test } from "bun:test";
 import { detalle, listado, periodoFiscal } from "../src/comprobantes.ts";
 import { expectAxiError, mockApi, seed, useSandbox } from "./helpers.ts";
 
@@ -42,21 +42,29 @@ describe("listado", () => {
     expect(calls[0]!.auth).toBe("Bearer jwtc-11");
   });
 
-  test("date range uses entre_fechas; a full page hints the next one", async () => {
+  test("date range uses entre_fechas; pagina is sent as a row offset; a full page hints the next one", async () => {
     loggedIn();
     const calls = mockApi({
-      "GET /x/entre_fechas?pagina=2&registros=1&fecha_desde=2026-01-01&fecha_hasta=2026-01-31": { items: [{}] },
+      "GET /x/entre_fechas?pagina=4&registros=3&fecha_desde=2026-01-01&fecha_hasta=2026-01-31": { items: [{}, {}, {}] },
     });
-    const out = await run(["--desde", "2026-01-01", "--hasta", "2026-01-31", "--pagina", "2", "--registros", "1"]);
+    const out = await run(["--desde", "2026-01-01", "--hasta", "2026-01-31", "--pagina", "2", "--registros", "3"]);
     expect(calls).toHaveLength(1);
-    expect(out.count).toBe("1 compras in 2026-01-01 to 2026-01-31, page 2");
-    expect(out.compras).toEqual([{ id: "", fecha: "", factura: "", proveedor: "", cuit: "", total: 0, cae: "" }]);
+    expect(out.count).toBe("3 compras in 2026-01-01 to 2026-01-31, page 2");
+    expect((out.compras as unknown[])[0]).toEqual({
+      id: "",
+      fecha: "",
+      factura: "",
+      proveedor: "",
+      cuit: "",
+      total: 0,
+      cae: "",
+    });
     expect(out.help).toEqual(["Run with `--pagina 3` for more"]);
   });
 
   test("empty states", async () => {
     loggedIn();
-    mockApi({ "GET /x/hoy?pagina=1&registros=50": { items: [] }, "GET /x/hoy?pagina=3&registros=50": {} });
+    mockApi({ "GET /x/hoy?pagina=1&registros=50": { items: [] }, "GET /x/hoy?pagina=101&registros=50": {} });
     expect(await run(["--periodo", "hoy"])).toEqual({ compras: "0 compras in hoy" });
     expect(await run(["--periodo", "hoy", "--pagina", "3"])).toEqual({ compras: "0 compras on page 3 (hoy)" });
   });
@@ -74,6 +82,83 @@ describe("listado", () => {
     const calls = mockApi({});
     await expectAxiError(run(args), "VALIDATION_ERROR", message);
     expect(calls).toEqual([]);
+  });
+});
+
+describe("listado consulta", () => {
+  const search = (args: string[]) =>
+    listado({
+      command: "ventas",
+      party: "cliente",
+      args,
+      flags: { modo: { type: "string" } },
+      path: (p) => `/x/${p}`,
+      consulta: { path: "/c", tipos: ["F", "NC"] },
+    }) as Promise<Record<string, unknown>>;
+
+  test("filters POST to consulta with the dates, row-offset paging and counterparty rows", async () => {
+    loggedIn();
+    const calls = mockApi({
+      "POST /c?pagina=3&registros=2": { items: [{ id: 1, cliente: { cuit: "20", clipro: "Ana" } }] },
+    });
+    const out = await search([
+      ...["--desde", "2026-01-01", "--hasta", "2026-06-30", "--pagina", "2", "--registros", "2"],
+      ...["--numero", "100-110", "--puntoventa", "5,6", "--tipo", "F,NC", "--cliente", "582660"],
+    ]);
+    expect(calls[0]!.auth).toBe("Bearer jwtc-11");
+    expect(calls[0]!.body).toEqual({
+      fecha_desde: "2026-01-01",
+      fecha_hasta: "2026-06-30",
+      numero_desde: 100,
+      numero_hasta: 110,
+      sucursal: [5, 6],
+      tipo_factura: ["F", "NC"],
+      idclipro: [582660],
+    });
+    expect(out.count).toBe("1 ventas in 2026-01-01 to 2026-06-30, page 2");
+    expect((out.ventas as Record<string, unknown>[])[0]).toMatchObject({ cliente: "Ana", cuit: "20" });
+  });
+
+  test("without --desde/--hasta searches this month; one --numero is both ends", async () => {
+    loggedIn();
+    setSystemTime(new Date(2026, 9, 22, 12));
+    try {
+      const calls = mockApi({ "POST /c?pagina=1&registros=50": { items: [] } });
+      expect(await search(["--numero", "7"])).toEqual({ ventas: "0 ventas in 2026-10-01 to 2026-10-22" });
+      expect(calls[0]!.body).toEqual({
+        fecha_desde: "2026-10-01",
+        fecha_hasta: "2026-10-22",
+        numero_desde: 7,
+        numero_hasta: 7,
+      });
+    } finally {
+      setSystemTime();
+    }
+  });
+
+  test.each([
+    [
+      ["--tipo", "F", "--periodo", "hoy"],
+      "--periodo can't be combined with --numero, --puntoventa, --tipo or --cliente",
+    ],
+    [["--cliente", "1", "--modo", "facturas"], "--modo can't be combined"],
+    [["--numero", "1-x"], "--numero must be <n> or <desde>-<hasta>"],
+    [["--puntoventa", "5,"], "--puntoventa must be a positive integer"],
+    [["--tipo", "ND"], "--tipo must be one of F, NC"],
+    [["--cliente", "0"], "--cliente must be a positive integer"],
+    [["--tipo", ""], "--tipo must be one of F, NC"],
+    [["--puntoventa", ""], "--puntoventa must be a positive integer"],
+    [["--cliente", ""], "--cliente must be a positive integer"],
+  ])("rejects %p before calling the API", async (args, message) => {
+    loggedIn();
+    const calls = mockApi({});
+    await expectAxiError(search(args), "VALIDATION_ERROR", message);
+    expect(calls).toEqual([]);
+  });
+
+  test("listings without consulta have no filter flags", async () => {
+    loggedIn();
+    await expectAxiError(run(["--numero", "1"]), "VALIDATION_ERROR", "unknown flag --numero");
   });
 });
 

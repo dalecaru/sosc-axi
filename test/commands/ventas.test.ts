@@ -34,6 +34,14 @@ test("--modo and --cae go in the path", async () => {
   expect(calls).toHaveLength(1);
 });
 
+test("filters search /venta/consulta and reject --cae", async () => {
+  loggedIn();
+  const calls = mockApi({ "POST /venta/consulta?pagina=1&registros=50": { items: [] } });
+  await ventas.run(["--tipo", "NC", "--desde", "2026-01-01", "--hasta", "2026-01-31"], undefined);
+  expect(calls[0]!.body).toMatchObject({ tipo_factura: ["NC"] });
+  await expectAxiError(ventas.run(["--tipo", "F", "--cae", "sincae"], undefined), "VALIDATION_ERROR", "--cae can't");
+});
+
 test("invalid --modo / --cae are validation errors", async () => {
   loggedIn();
   mockApi({});

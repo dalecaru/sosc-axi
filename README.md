@@ -51,13 +51,16 @@ Read-only listings and detail for the active CUIT, 50 rows per page:
 sosc-axi ventas                                   # facturas of this month
 sosc-axi ventas --modo notascredito --cae sincae --periodo mes_anterior
 sosc-axi compras --desde 2026-01-01 --hasta 2026-03-31 --pagina 2
+sosc-axi ventas --cliente 25101884 --desde 2026-01-01 --hasta 2026-06-30
+sosc-axi ventas --puntoventa 5 --tipo F --numero 100-110   # this month unless --desde/--hasta
+sosc-axi compras --proveedor 8769368 --tipo NC
 sosc-axi ventas view 933742304                    # one invoice with imputaciones and productos
 sosc-axi cobros --periodo mes_anterior            # money in
 sosc-axi pagos view 930159905                     # one payment with imputaciones
 sosc-axi recibos                                  # receipts, list only
 ```
 
-`--periodo` is `hoy`, `ayer`, `semana`, `mes` (default) or `mes_anterior`; for ventas and compras `--desde/--hasta` (AAAA-MM-DD) selects a range instead (the API has no range for cobros, pagos and recibos).
+`--periodo` is `hoy`, `ayer`, `semana`, `mes` (default) or `mes_anterior`; for ventas and compras `--desde/--hasta` (AAAA-MM-DD) selects a range instead (the API has no range for cobros, pagos and recibos). Ventas and compras also filter by `--numero`, `--puntoventa`, `--tipo` and `--cliente`/`--proveedor` (ids from `sosc-axi clientes`), within `--desde/--hasta` or this month.
 
 ## Issuing ventas
 
