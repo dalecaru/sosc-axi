@@ -40,11 +40,12 @@ async function run(args: string[]) {
   });
   const items = Array.isArray(res?.items) ? res.items : [];
   const paginas = num(res?.paginas);
+  const label = tipo === "proveedor" ? "proveedores" : "clientes";
 
-  if (!items.length) return { clientes: pagina > 1 ? `0 clientes on page ${pagina}` : "0 clientes" };
+  if (!items.length) return { clientes: pagina > 1 ? `0 ${label} on page ${pagina}` : `0 ${label}` };
   return {
     cuit: cuit.cuit,
-    count: `${items.length} ${tipo === "proveedor" ? "proveedores" : "clientes"}, page ${pagina} of ${paginas}`,
+    count: `${items.length} ${label}, page ${pagina} of ${paginas}`,
     // Rows carry no cliente/proveedor flag; only a --tipo listing knows which side they are.
     clientes: items.map((c) => ({
       id: str(c.id),

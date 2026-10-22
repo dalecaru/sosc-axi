@@ -59,6 +59,20 @@ test("an empty later page says so", async () => {
   expect(await clientes.run(["--pagina", "4"], undefined)).toEqual({ clientes: "0 clientes on page 4" });
 });
 
+test("an empty --tipo proveedor listing says no proveedores", async () => {
+  loggedIn();
+  mockApi({ "GET /cliente/listado?pagina=1&registros=50&proveedor=true": { paginas: 0, items: [] } });
+  expect(await clientes.run(["--tipo", "proveedor"], undefined)).toEqual({ clientes: "0 proveedores" });
+});
+
+test("an empty later --tipo proveedor page says no proveedores", async () => {
+  loggedIn();
+  mockApi({ "GET /cliente/listado?pagina=4&registros=50&proveedor=true": { paginas: 3, items: [] } });
+  expect(await clientes.run(["--tipo", "proveedor", "--pagina", "4"], undefined)).toEqual({
+    clientes: "0 proveedores on page 4",
+  });
+});
+
 test("rejects a bad --tipo or --pagina before calling the API", async () => {
   loggedIn();
   const calls = mockApi({});
