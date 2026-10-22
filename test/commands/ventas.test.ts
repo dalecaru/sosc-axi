@@ -77,9 +77,34 @@ describe("create", () => {
     const body = calls[0]!.body as Record<string, unknown>;
     expect(calls[0]!.auth).toBe("Bearer jwtc-11");
     expect(body).toMatchObject({ ...VENTA, obtienecae: false });
-    expect(body.uniqueid).toMatch(/^[0-9a-f-]{36}$/);
+    expect(body.uniqueid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(out).toMatchObject({ venta: "created 933742304 without CAE", id: "933742304", uniqueid: body.uniqueid });
     expect(out.help).toContain("Run `sosc-axi ventas pdf 933742304` to download the PDF");
+    await create(["--file", file(VENTA)]);
+    expect((calls[1]!.body as Record<string, unknown>).uniqueid).not.toBe(body.uniqueid);
+  });
+
+  test.each([[{ ok: true }], [{ id: { n: 5 } }], [{ idventa: "abc" }], [null]])(
+    "a response %j without a numeric id may or may not have created the venta",
+    async (res) => {
+      loggedIn();
+      mockApi({ "PUT /venta": res });
+      const e = await expectAxiError(
+        create(["--file", file({ ...VENTA, uniqueid: "u-3" })]),
+        "API_ERROR",
+        "may or may not have been created",
+      );
+      expect(e.suggestions).toContain("Run `sosc-axi ventas --periodo hoy` to check");
+      expect(e.suggestions.join()).toContain('"uniqueid": "u-3"');
+    },
+  );
+
+  test("reads the id from idventa and ignores a non-scalar cae", async () => {
+    loggedIn();
+    mockApi({ "PUT /venta": { idventa: "77", cae: { numero: 1 } } });
+    const out = await create(["--file", file(VENTA)]);
+    expect(out).toMatchObject({ venta: "created 77 without CAE", id: "77" });
+    expect(out.cae).toBeUndefined();
   });
 
   test("--cae asks AFIP for a CAE and keeps a given uniqueid", async () => {
@@ -132,6 +157,10 @@ describe("create", () => {
     [{ productos: [{ fc: 1, fu: -5 }] }, "productos[0].fu must be a positive number"],
     [{ productos: [{ fc: 1, fu: 1, fa: 22 }] }, "productos[0].fa must be one of 0, 2.5, 5, 10.5, 21, 27"],
     [{ productos: undefined, imputaciones: [{ i: "neto", v: "1550" }] }, "imputaciones[0].v must be a positive number"],
+    [{ productos: { fc: -1, fu: -1 }, imputaciones: [{ v: 100 }] }, "productos must be an array"],
+    [{ productos: [null] }, "productos[0] must be an object"],
+    [{ imputaciones: "neto" }, "imputaciones must be an array"],
+    [{ productos: undefined, imputaciones: [null] }, "imputaciones[0] must be an object"],
   ])("rejects %j before calling the API", async (patch, message) => {
     const calls = mockApi({});
     await expectAxiError(create(["--file", file({ ...VENTA, ...patch }), "--dry-run"]), "VALIDATION_ERROR", message);

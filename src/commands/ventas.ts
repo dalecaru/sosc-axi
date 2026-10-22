@@ -63,6 +63,8 @@ function validCuit(v: unknown) {
 }
 
 const isPositive = (v: unknown) => typeof v === "number" && v > 0;
+const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+const scalar = (v: unknown) => (typeof v === "string" || typeof v === "number" ? str(v) : "");
 
 function problems(v: Record<string, unknown>) {
   const out: string[] = [];
@@ -77,10 +79,19 @@ function problems(v: Record<string, unknown>) {
   if (v.descuento != null && !(typeof v.descuento === "number" && v.descuento >= 0)) {
     out.push("descuento must be a number >= 0");
   }
-  const productos = Array.isArray(v.productos) ? (v.productos as Record<string, unknown>[]) : [];
-  const imputaciones = Array.isArray(v.imputaciones) ? (v.imputaciones as Record<string, unknown>[]) : [];
+  const list = (key: string) => {
+    const l = v[key] ?? [];
+    if (!Array.isArray(l)) out.push(`${key} must be an array`);
+    return Array.isArray(l) ? (l as unknown[]) : [];
+  };
+  const productos = list("productos");
+  const imputaciones = list("imputaciones");
   if (!productos.length && !imputaciones.length) out.push("at least one producto or imputacion is required");
   productos.forEach((p, i) => {
+    if (!isObject(p)) {
+      out.push(`productos[${i}] must be an object`);
+      return;
+    }
     if (!isPositive(p.fc)) out.push(`productos[${i}].fc must be a positive number`);
     if (!isPositive(p.fu)) out.push(`productos[${i}].fu must be a positive number`);
     if (p.fa != null && !ALICUOTAS.includes(p.fa as number)) {
@@ -88,6 +99,10 @@ function problems(v: Record<string, unknown>) {
     }
   });
   imputaciones.forEach((m, i) => {
+    if (!isObject(m)) {
+      out.push(`imputaciones[${i}] must be an object`);
+      return;
+    }
     if (!isPositive(m.v)) out.push(`imputaciones[${i}].v must be a positive number`);
   });
   return out;
@@ -111,10 +126,10 @@ function readVenta(file: string | undefined): Record<string, unknown> {
   } catch {
     throw new AxiError(`${file} is not valid JSON`, "VALIDATION_ERROR");
   }
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
+  if (!isObject(body)) {
     throw new AxiError(`${file} must hold a JSON object (one venta)`, "VALIDATION_ERROR");
   }
-  return body as Record<string, unknown>;
+  return body;
 }
 
 async function create(args: string[]) {
@@ -131,19 +146,24 @@ async function create(args: string[]) {
   if (values["dry-run"]) return { request: "PUT /venta (dry run, nothing sent)", body };
 
   const [usuario, , jwtc] = await activeCuit(loadStore(), values.usuario);
+  const retry = `Retry with "uniqueid": "${body.uniqueid}" in the JSON so the venta is not created twice`;
   let res: Record<string, unknown>;
   try {
     // PUT /venta/{id} without an id creates (no response schema published: id and cae are read by name).
     res = (await api<Record<string, unknown>>("/venta", { method: "PUT", token: jwtc, body, usuario })) ?? {};
   } catch (error) {
     const e = error as AxiError;
-    throw new AxiError(e.message, e.code, [
-      ...(e.suggestions ?? []),
-      `Retry with "uniqueid": "${body.uniqueid}" in the JSON so the venta is not created twice`,
-    ]);
+    throw new AxiError(e.message, e.code, [...(e.suggestions ?? []), retry]);
   }
-  const id = str(res.id ?? res.idventa ?? res.idcomprobante);
-  const cae = str(res.cae);
+  const id = scalar(res.id ?? res.idventa ?? res.idcomprobante);
+  if (!/^\d+$/.test(id)) {
+    throw new AxiError(
+      "PUT /venta answered without a venta id: the venta may or may not have been created",
+      "API_ERROR",
+      ["Run `sosc-axi ventas --periodo hoy` to check", retry],
+    );
+  }
+  const cae = scalar(res.cae);
   return {
     venta: `created ${id}${cae ? ` with CAE ${cae}` : " without CAE"}`,
     id,
