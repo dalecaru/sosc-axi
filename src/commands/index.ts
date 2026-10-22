@@ -4,6 +4,9 @@ import { cobros } from "./cobros.ts";
 import { compras } from "./compras.ts";
 import { cuentacorriente } from "./cuentacorriente.ts";
 import { cuits } from "./cuits.ts";
+import { eventanilla } from "./eventanilla.ts";
+import { iva } from "./iva.ts";
+import { libroiva } from "./libroiva.ts";
 import { login } from "./login.ts";
 import { logout } from "./logout.ts";
 import { pagos } from "./pagos.ts";
@@ -35,4 +38,7 @@ export const COMMANDS: Command[] = [
   pagos,
   recibos,
   cuentacorriente,
+  libroiva,
+  iva,
+  eventanilla,
 ];

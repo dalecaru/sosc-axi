@@ -120,9 +120,39 @@ type Detalle = {
   productos?: Record<string, unknown>[];
 };
 
-const str = (v: unknown) => (v == null ? "" : String(v).trim());
-const num = (v: unknown) => Number(v) || 0;
+export const str = (v: unknown) => (v == null ? "" : String(v).trim());
+export const num = (v: unknown) => Number(v) || 0;
 export const cents = (n: number) => Math.round(n * 100) / 100;
+
+/** "FA-0005-00000102" from tipo (F/C/D), letra, punto de venta and número. */
+export const numero = (tipo: unknown, letra: unknown, pv: unknown, nro: unknown) =>
+  `${str(tipo)}${str(letra)}-${String(num(pv)).padStart(4, "0")}-${String(num(nro)).padStart(8, "0")}`;
+
+export const PERIODO_FISCAL_FLAGS = {
+  ejercicio: { type: "string" },
+  anio: { type: "string" },
+  mes: { type: "string" },
+  usuario: { type: "string" },
+} as const;
+
+const year = (flag: string, value: string) => {
+  if (!/^\d{4}$/.test(value)) throw new AxiError(`--${flag} must be AAAA`, "VALIDATION_ERROR");
+  return value;
+};
+
+/**
+ * --ejercicio/--anio/--mes of libroiva and iva. The API ignores the ejercicio path segment and returns nothing
+ * without anio and mes; mes 00 is the whole calendar year anio, so no --mes means the whole ejercicio.
+ */
+export function periodoFiscal(v: { ejercicio?: string; anio?: string; mes?: string }) {
+  const ejercicio = year("ejercicio", v.ejercicio ?? String(new Date().getFullYear()));
+  const anio = year("anio", v.anio ?? ejercicio);
+  if (v.mes !== undefined && !/^(0[1-9]|1[0-2])$/.test(v.mes)) {
+    throw new AxiError("--mes must be MM (01-12)", "VALIDATION_ERROR");
+  }
+  const query = new URLSearchParams({ anio, mes: v.mes ?? "00" });
+  return { ejercicio, query: String(query), when: v.mes ? `${anio}-${v.mes}` : anio };
+}
 
 /** `{base}/detalle/{id}`: header, accounting lines (imputaciones) and products of one comprobante. */
 export async function detalle(opts: {
@@ -175,7 +205,7 @@ export async function detalle(opts: {
   return {
     id: str(c.id) || id,
     fecha: str(c.fecha).slice(0, 10),
-    factura: `${str(c.fcncnd)}${str(c.letra)}-${str(c.puntoventa).padStart(4, "0")}-${str(c.numero).padStart(8, "0")}`,
+    factura: numero(c.fcncnd, c.letra, c.puntoventa, c.numero),
     [party]: str(c.clipro),
     cuit: str(c.cuit),
     cae: str(c.cae),

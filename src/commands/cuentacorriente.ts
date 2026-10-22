@@ -2,7 +2,7 @@ import { AxiError } from "axi-sdk-js";
 import { api } from "../api.ts";
 import { parse } from "../args.ts";
 import { activeCuit } from "../auth.ts";
-import { cents, date } from "../comprobantes.ts";
+import { cents, date, num, numero, str } from "../comprobantes.ts";
 import { loadStore } from "../store.ts";
 import type { Command } from "./index.ts";
 
@@ -35,9 +35,6 @@ type Movimiento = {
   montohaber?: unknown;
 };
 
-const str = (v: unknown) => (v == null ? "" : String(v).trim());
-const num = (v: unknown) => Number(v) || 0;
-
 function party(m: Movimiento) {
   const [, cuit = "", nombre = str(m.clipro)] = str(m.clipro).match(/^(\d{11})\s+(.*)$/) ?? [];
   return { cuit, nombre: nombre.trim() };
@@ -45,9 +42,7 @@ function party(m: Movimiento) {
 
 // "Saldo anterior" rows have no comprobante and carry their label in letra.
 const comprobante = (m: Movimiento) =>
-  m.idcomprobante == null
-    ? str(m.letra)
-    : `${str(m.fcncnd)}${str(m.letra)}-${str(m.sucursal).padStart(4, "0")}-${str(m.numero).padStart(8, "0")}`;
+  m.idcomprobante == null ? str(m.letra) : numero(m.fcncnd, m.letra, m.sucursal, m.numero);
 
 async function run(args: string[]) {
   const { values } = parse("cuentacorriente", args, {
