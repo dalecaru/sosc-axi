@@ -25,7 +25,7 @@ export function loadStore(): Store {
 
 export function saveStore(store: Store): void {
   mkdirSync(storeDir(), { recursive: true, mode: 0o700 });
-  writeFileSync(storeFile(), JSON.stringify(store, null, 2) + "\n", { mode: 0o600 });
+  writeFileSync(storeFile(), `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
   chmodSync(storeFile(), 0o600);
 }
 

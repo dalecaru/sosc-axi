@@ -3,8 +3,7 @@ import { mkdtempSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const jwt = (sub: string) =>
-  `h.${Buffer.from(JSON.stringify({ sub, exp: 4102444800 })).toString("base64url")}.s`;
+const jwt = (sub: string) => `h.${Buffer.from(JSON.stringify({ sub, exp: 4102444800 })).toString("base64url")}.s`;
 
 const server = Bun.serve({
   port: 0,
@@ -12,7 +11,9 @@ const server = Bun.serve({
     "/login": {
       POST: async (req) => {
         const { usuario, password } = (await req.json()) as { usuario: string; password: string };
-        return Response.json(password === "secret" ? { jwt: jwt(usuario) } : { error: "Error: Usuario o clave no válidos" });
+        return Response.json(
+          password === "secret" ? { jwt: jwt(usuario) } : { error: "Error: Usuario o clave no válidos" },
+        );
       },
     },
     "/cuit/listado": (req) =>
@@ -32,7 +33,8 @@ afterAll(() => server.stop());
 // Run the bundle users get via npx, on Node (whatever `node` is on PATH; CI sets the version matrix).
 const bin = join(import.meta.dir, "../dist/sosc-axi.js");
 beforeAll(() => {
-  if (Bun.spawnSync(["bun", "run", "build"], { cwd: join(import.meta.dir, "..") }).exitCode !== 0) throw new Error("build failed");
+  if (Bun.spawnSync(["bun", "run", "build"], { cwd: join(import.meta.dir, "..") }).exitCode !== 0)
+    throw new Error("build failed");
 });
 
 let home: string;

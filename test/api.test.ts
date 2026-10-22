@@ -42,7 +42,11 @@ describe("errors", () => {
 
   test.each([401, 403])("HTTP %d is AUTH_REQUIRED with a re-login hint for the user", async (status) => {
     mockApi({ "GET /x": Response.json({ mensaje: "token vencido" }, { status }) });
-    const e = await expectAxiError(api("/x", { usuario: "ana@x.com" }), "AUTH_REQUIRED", "Not authorized: token vencido");
+    const e = await expectAxiError(
+      api("/x", { usuario: "ana@x.com" }),
+      "AUTH_REQUIRED",
+      "Not authorized: token vencido",
+    );
     expect(e.suggestions).toEqual(["Run `sosc-axi login --usuario ana@x.com --password-stdin` to refresh the session"]);
   });
 
@@ -52,7 +56,10 @@ describe("errors", () => {
   });
 
   test("non-ok status falls back to a truncated text body, then to the status", async () => {
-    mockApi({ "GET /long": new Response("x".repeat(500), { status: 500 }), "GET /blank": new Response("", { status: 502 }) });
+    mockApi({
+      "GET /long": new Response("x".repeat(500), { status: 500 }),
+      "GET /blank": new Response("", { status: 502 }),
+    });
     const e = await expectAxiError(api("/long"), "API_ERROR");
     expect(e.message).toBe(`SOS Contador: ${"x".repeat(300)}`);
     await expectAxiError(api("/blank"), "API_ERROR", "SOS Contador: HTTP 502");

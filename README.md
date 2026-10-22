@@ -53,6 +53,7 @@ bun install
 bun run dev -- <command>   # run from source
 bun test
 bun run typecheck
+bun run lint               # Biome lint + format check (lint:fix to apply)
 bun run build              # dist/sosc-axi.js
 ```
 

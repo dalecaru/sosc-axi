@@ -23,7 +23,10 @@ test("default account with an active CUIT", () => {
 });
 
 test("no CUIT selected and several accounts", () => {
-  seed({ default: "ana@x.com", accounts: { "ana@x.com": { jwt: "x", cuits: [] }, "bob@x.com": { jwt: "y", cuits: [] } } });
+  seed({
+    default: "ana@x.com",
+    accounts: { "ana@x.com": { jwt: "x", cuits: [] }, "bob@x.com": { jwt: "y", cuits: [] } },
+  });
   const out = home() as { cuit: string; help: string[] };
   expect(out.cuit).toBe("none selected");
   expect(out.help).toEqual([

@@ -37,7 +37,8 @@ async function run(args: string[]) {
 async function use(args: string[]) {
   const { values, positionals } = parse("cuits use", args, { usuario: { type: "string" } }, 1);
   const wanted = positionals[0];
-  if (!wanted) throw new AxiError("CUIT id or number is required", "VALIDATION_ERROR", ["sosc-axi cuits use <id|cuit>"]);
+  if (!wanted)
+    throw new AxiError("CUIT id or number is required", "VALIDATION_ERROR", ["sosc-axi cuits use <id|cuit>"]);
 
   const store = loadStore();
   const [usuario, account] = resolveAccount(store, values.usuario);

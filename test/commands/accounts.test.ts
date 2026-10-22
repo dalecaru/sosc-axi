@@ -39,7 +39,9 @@ describe("list", () => {
 describe("use", () => {
   test("switches the default account", async () => {
     two();
-    expect(await accounts.run(["use", "bob@x.com"], undefined)).toEqual({ accounts: "default account is now bob@x.com" });
+    expect(await accounts.run(["use", "bob@x.com"], undefined)).toEqual({
+      accounts: "default account is now bob@x.com",
+    });
     expect(loadStore().default).toBe("bob@x.com");
   });
 

@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { cuitRows, findCuits, resolveAccount, token } from "../src/auth.ts";
 
 describe("resolveAccount", () => {
-  const store = { default: "ana@x.com", accounts: { "ana@x.com": { jwt: "a", cuits: [] }, "bob@x.com": { jwt: "b", cuits: [] } } };
+  const store = {
+    default: "ana@x.com",
+    accounts: { "ana@x.com": { jwt: "a", cuits: [] }, "bob@x.com": { jwt: "b", cuits: [] } },
+  };
 
   test("uses --usuario, else the default", () => {
     expect(resolveAccount(store)[0]).toBe("ana@x.com");
@@ -17,7 +20,10 @@ describe("resolveAccount", () => {
 
   test("named account not logged in suggests logging it in", () => {
     expect(() => resolveAccount(store, "zoe@x.com")).toThrow(
-      expect.objectContaining({ code: "AUTH_REQUIRED", suggestions: ["Run `sosc-axi login --usuario zoe@x.com --password-stdin`"] }),
+      expect.objectContaining({
+        code: "AUTH_REQUIRED",
+        suggestions: ["Run `sosc-axi login --usuario zoe@x.com --password-stdin`"],
+      }),
     );
   });
 });
@@ -26,7 +32,12 @@ describe("findCuits", () => {
   test("walks nested payloads, accepts id variants and dedupes by id", () => {
     const payload = {
       cuits: [{ idcuit: 1, cuit: "20-12345678-9", razonsocial: " Ana " }],
-      nested: { list: [{ id_cuit: 2, cuit: 30712345671, razon_social: "SRL" }, { id: 3, cuit: "27111111111" }] },
+      nested: {
+        list: [
+          { id_cuit: 2, cuit: 30712345671, razon_social: "SRL" },
+          { id: 3, cuit: "27111111111" },
+        ],
+      },
       dup: { idcuit: 1, cuit: "20123456789", nombre: "later wins" },
     };
     expect(findCuits(payload)).toEqual([
@@ -54,7 +65,15 @@ describe("token", () => {
 });
 
 test("cuitRows marks the active CUIT", () => {
-  expect(cuitRows([{ id: "1", cuit: "20123456789" }, { id: "2", cuit: "30712345671", nombre: "SRL" }], "2")).toEqual([
+  expect(
+    cuitRows(
+      [
+        { id: "1", cuit: "20123456789" },
+        { id: "2", cuit: "30712345671", nombre: "SRL" },
+      ],
+      "2",
+    ),
+  ).toEqual([
     { id: "1", cuit: "20123456789", nombre: "", active: "" },
     { id: "2", cuit: "30712345671", nombre: "SRL", active: "*" },
   ]);

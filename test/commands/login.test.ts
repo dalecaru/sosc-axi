@@ -78,7 +78,10 @@ describe("login", () => {
 
   test("falls back to the CUITs embedded in the login response", async () => {
     process.env.SOSC_PASSWORD = "secret";
-    mockApi({ "POST /login": { jwt: TOKEN, cuits: [{ id: 5, cuit: "27111111111" }] }, "GET /cuit/listado": { items: [] } });
+    mockApi({
+      "POST /login": { jwt: TOKEN, cuits: [{ id: 5, cuit: "27111111111" }] },
+      "GET /cuit/listado": { items: [] },
+    });
     const out = (await login.run(["--usuario", "ana@x.com"], undefined)) as Record<string, unknown>;
     expect(out.count).toBe("1 CUITs available");
   });
@@ -93,7 +96,11 @@ describe("login", () => {
   test("surfaces the API error for bad credentials", async () => {
     process.env.SOSC_PASSWORD = "nope";
     mockApi({ "POST /login": { error: "Error: Usuario o clave no válidos" } });
-    await expectAxiError(login.run(["--usuario", "ana@x.com"], undefined), "API_ERROR", "SOS Contador: Usuario o clave no válidos");
+    await expectAxiError(
+      login.run(["--usuario", "ana@x.com"], undefined),
+      "API_ERROR",
+      "SOS Contador: Usuario o clave no válidos",
+    );
     expect(loadStore().accounts).toEqual({});
   });
 

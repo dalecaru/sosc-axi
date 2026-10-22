@@ -1,18 +1,17 @@
 import { AxiError } from "axi-sdk-js";
 import type { Account, Cuit, Store } from "./store.ts";
 
-export const LOGIN_HINT = "Run `sosc-axi login --usuario <email> --password-stdin` (password on stdin, or set SOSC_PASSWORD)";
+export const LOGIN_HINT =
+  "Run `sosc-axi login --usuario <email> --password-stdin` (password on stdin, or set SOSC_PASSWORD)";
 
 /** The account selected by --usuario, or the default one. */
 export function resolveAccount(store: Store, usuario?: string): [string, Account] {
   const name = usuario ?? store.default;
   const account = name ? store.accounts[name] : undefined;
   if (!name || !account) {
-    throw new AxiError(
-      name ? `${name} is not logged in` : "No SOS Contador account is logged in",
-      "AUTH_REQUIRED",
-      [name ? `Run \`sosc-axi login --usuario ${name} --password-stdin\`` : LOGIN_HINT],
-    );
+    throw new AxiError(name ? `${name} is not logged in` : "No SOS Contador account is logged in", "AUTH_REQUIRED", [
+      name ? `Run \`sosc-axi login --usuario ${name} --password-stdin\`` : LOGIN_HINT,
+    ]);
   }
   return [name, account];
 }
@@ -28,7 +27,11 @@ export function findCuits(payload: unknown): Cuit[] {
     const id = o.idcuit ?? o.id_cuit ?? o.id;
     if (o.cuit != null && id != null && String(o.cuit).replace(/\D/g, "").length >= 8) {
       const nombre = o.razonsocial ?? o.razon_social ?? o.nombre;
-      found.set(String(id), { id: String(id), cuit: String(o.cuit), nombre: nombre ? String(nombre).trim() : undefined });
+      found.set(String(id), {
+        id: String(id),
+        cuit: String(o.cuit),
+        nombre: nombre ? String(nombre).trim() : undefined,
+      });
     }
     Object.values(o).forEach(walk);
   };

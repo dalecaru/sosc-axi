@@ -12,7 +12,9 @@ test("every command has help starting with its usage line", () => {
 });
 
 test("every command module is a real API module (OpenAPI tag)", async () => {
-  const spec = Bun.YAML.parse(await Bun.file(new URL("../../openapi/sos-contador.openapi.yaml", import.meta.url)).text()) as {
+  const spec = Bun.YAML.parse(
+    await Bun.file(new URL("../../openapi/sos-contador.openapi.yaml", import.meta.url)).text(),
+  ) as {
     paths: Record<string, Record<string, { tags?: string[] }>>;
   };
   const tags = new Set(Object.values(spec.paths).flatMap((ops) => Object.values(ops).flatMap((o) => o.tags ?? [])));

@@ -10,7 +10,7 @@ type Flags = Record<string, { type: "string" | "boolean" }>;
 export function parse<F extends Flags>(command: string, args: string[], flags: F, maxPositionals = 0) {
   const valid = Object.keys(flags).map((f) => `--${f}`);
   const hint = `valid flags for \`${command}\`: ${valid.join(", ") || "(none)"} (--help always allowed)`;
-  let parsed;
+  let parsed: ReturnType<typeof parseArgs>;
   try {
     parsed = parseArgs({ args, options: flags, allowPositionals: true, strict: true });
   } catch (error) {
@@ -28,5 +28,8 @@ export function parse<F extends Flags>(command: string, args: string[], flags: F
       [`Run \`sosc-axi ${command.split(" ")[0]} --help\``],
     );
   }
-  return parsed as { values: { [K in keyof F]?: F[K]["type"] extends "boolean" ? boolean : string }; positionals: string[] };
+  return parsed as {
+    values: { [K in keyof F]?: F[K]["type"] extends "boolean" ? boolean : string };
+    positionals: string[];
+  };
 }

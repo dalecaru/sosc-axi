@@ -17,7 +17,9 @@ test("no account logged in is a no-op", async () => {
 
 test("unknown account is a no-op", async () => {
   two();
-  expect(await logout.run(["--usuario", "zoe@x.com"], undefined)).toEqual({ logout: "zoe@x.com was not logged in (no-op)" });
+  expect(await logout.run(["--usuario", "zoe@x.com"], undefined)).toEqual({
+    logout: "zoe@x.com was not logged in (no-op)",
+  });
   expect(Object.keys(loadStore().accounts)).toHaveLength(2);
 });
 

@@ -1,5 +1,5 @@
-import { accounts } from "./accounts.ts";
 import type { AxiCliCommand } from "axi-sdk-js";
+import { accounts } from "./accounts.ts";
 import { cuits } from "./cuits.ts";
 import { login } from "./login.ts";
 import { logout } from "./logout.ts";

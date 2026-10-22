@@ -39,11 +39,14 @@
     "build": "rm -rf dist && bun build bin/sosc-axi.ts --target node --splitting --outdir dist",
     "build:skill": "bun scripts/build-skill.ts",
     "test": "bun test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p test && tsc --noEmit -p scripts",
     "sync:openapi": "bun scripts/sync-openapi.ts",
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.2",
     "@types/bun": "latest",
     "@types/node": "^20",
     "axi-sdk-js": "^0.1.13",
