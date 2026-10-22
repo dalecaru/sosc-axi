@@ -11,7 +11,7 @@ examples:
   sosc-axi puntosventa
 `;
 
-type PuntoVenta = { id?: unknown; puntoventa?: unknown; nombre?: unknown; electronico?: unknown };
+type PuntoVenta = { id?: unknown; puntoventa?: unknown; nombre?: unknown };
 
 async function run(args: string[]) {
   const { values } = parse("puntosventa", args, { usuario: { type: "string" } });
@@ -27,7 +27,6 @@ async function run(args: string[]) {
       id: str(p.id),
       numero: num(p.puntoventa),
       nombre: str(p.nombre),
-      ...(p.electronico === undefined ? {} : { electronico: p.electronico === true || p.electronico === 1 }),
     })),
   };
 }
