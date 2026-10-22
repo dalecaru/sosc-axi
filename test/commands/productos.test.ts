@@ -10,12 +10,12 @@ const loggedIn = () =>
     accounts: { "ana@x.com": { jwt: "u", cuit: "11", cuits: [{ id: "11", cuit: "20123456789", jwtc: "jwtc-11" }] } },
   });
 
-test("lists productos with price, IVA rate and unit", async () => {
+test("lists productos with price and IVA rate (the API names no unit, only idunidad)", async () => {
   loggedIn();
   const calls = mockApi({
     "GET /producto/listado?pagina=1&registros=50": {
       items: [
-        { id: 63, codigo: "1234", producto: "Tornillo ", precio1: "10.5", tasaiva: 21, unidad: "unidades" },
+        { id: 63, codigo: "1234", producto: "Tornillo ", precio1: "10.5", tasaiva: 21, idunidad: 7 },
         { id: 64, producto: "Servicio" },
       ],
     },
@@ -25,8 +25,8 @@ test("lists productos with price, IVA rate and unit", async () => {
   expect(out.cuit).toBe("20123456789");
   expect(out.count).toBe("2 productos, page 1");
   expect(out.productos).toEqual([
-    { id: "63", codigo: "1234", producto: "Tornillo", precio: 10.5, iva: 21, unidad: "unidades" },
-    { id: "64", codigo: "", producto: "Servicio", precio: 0, iva: 0, unidad: "" },
+    { id: "63", codigo: "1234", producto: "Tornillo", precio: 10.5, iva: 21 },
+    { id: "64", codigo: "", producto: "Servicio", precio: 0, iva: 0 },
   ]);
 });
 

@@ -41,7 +41,6 @@ async function run(args: string[]) {
       producto: str(p.producto),
       precio: num(p.precio1),
       iva: num(p.tasaiva),
-      unidad: str(p.unidad),
     })),
     ...(items.length === registros ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
   };

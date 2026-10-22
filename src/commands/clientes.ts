@@ -1,7 +1,7 @@
 import { api } from "../api.ts";
 import { parse } from "../args.ts";
 import { activeCuit } from "../auth.ts";
-import { oneOf, positive, str } from "../comprobantes.ts";
+import { num, oneOf, positive, str } from "../comprobantes.ts";
 import { loadStore } from "../store.ts";
 import type { Command } from "./index.ts";
 
@@ -16,9 +16,7 @@ examples:
   sosc-axi clientes --tipo proveedor --pagina 2
 `;
 
-type Clipro = { id?: unknown; cuit?: unknown; clipro?: unknown; cliente?: unknown; proveedor?: unknown };
-
-const yes = (v: unknown) => v === true || v === 1 || v === "1" || v === "true";
+type Clipro = { id?: unknown; cuit?: unknown; clipro?: unknown };
 
 async function run(args: string[]) {
   const { values } = parse("clientes", args, {
@@ -30,31 +28,31 @@ async function run(args: string[]) {
   const tipo = oneOf("tipo", values.tipo, ["cliente", "proveedor"]);
   const pagina = positive("pagina", values.pagina, 1);
   const registros = positive("registros", values.registros, 50);
-  const query = new URLSearchParams({
-    pagina: String(pagina),
-    registros: String(registros),
-    cliente: String(tipo !== "proveedor"),
-    proveedor: String(tipo !== "cliente"),
-  });
+  const query = new URLSearchParams({ pagina: String(pagina), registros: String(registros) });
+  // The API reads cliente=false as true, so only the wanted side is sent.
+  if (tipo !== "proveedor") query.set("cliente", "true");
+  if (tipo !== "cliente") query.set("proveedor", "true");
 
   const [usuario, cuit, jwtc] = await activeCuit(loadStore(), values.usuario);
-  const res = await api<Clipro[] | { items?: Clipro[] }>(`/cliente/listado?${query}`, { token: jwtc, usuario });
-  const items = (Array.isArray(res) ? res : res?.items) ?? [];
+  const res = await api<{ paginas?: number; items?: Clipro[] }>(`/cliente/listado?${query}`, {
+    token: jwtc,
+    usuario,
+  });
+  const items = Array.isArray(res?.items) ? res.items : [];
+  const paginas = num(res?.paginas);
 
   if (!items.length) return { clientes: pagina > 1 ? `0 clientes on page ${pagina}` : "0 clientes" };
   return {
     cuit: cuit.cuit,
-    count: `${items.length} clientes, page ${pagina}`,
-    clientes: items.map((c) => {
-      const [cli, pro] = tipo ? [tipo === "cliente", tipo === "proveedor"] : [yes(c.cliente), yes(c.proveedor)];
-      return {
-        id: str(c.id),
-        cuit: str(c.cuit),
-        nombre: str(c.clipro),
-        tipo: cli && pro ? "ambos" : cli ? "cliente" : pro ? "proveedor" : "",
-      };
-    }),
-    ...(items.length === registros ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
+    count: `${items.length} ${tipo === "proveedor" ? "proveedores" : "clientes"}, page ${pagina} of ${paginas}`,
+    // Rows carry no cliente/proveedor flag; only a --tipo listing knows which side they are.
+    clientes: items.map((c) => ({
+      id: str(c.id),
+      cuit: str(c.cuit),
+      nombre: str(c.clipro),
+      ...(tipo ? { tipo } : {}),
+    })),
+    ...(pagina < paginas ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
   };
 }
 
