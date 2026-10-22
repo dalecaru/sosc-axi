@@ -30,17 +30,5 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
       - run: bun install --frozen-lockfile && bun test && bun run build
         if: ${{ steps.release.outputs.release_created }}
-      # 1.2.3-alpha.4 -> dist-tag "alpha", 1.2.3-rc.1 -> "rc", 1.2.3 -> "latest"
-      - run: |
-          TAG=$(node -p "(require('./package.json').version.match(/-([a-z]+)/) || [, 'latest'])[1]")
-          # No stable release yet: publish prereleases as `latest` too. npmjs.com only refreshes the
-          # package page README on a `latest` publish, moving the dist-tag afterwards is not enough.
-          case "$TAG:$(npm view sosc-axi dist-tags.latest)" in
-            latest:*) npm publish --provenance --access public ;;
-            *:*-*)
-              npm publish --provenance --access public --tag latest
-              npm dist-tag add "sosc-axi@$(node -p "require('./package.json').version")" "$TAG"
-              ;;
-            *) npm publish --provenance --access public --tag "$TAG" ;;
-          esac
+      - run: npm publish --provenance --access public
         if: ${{ steps.release.outputs.release_created }}

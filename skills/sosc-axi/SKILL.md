@@ -11,10 +11,12 @@ Agent-ergonomic CLI for the SOS Contador accounting API (Argentina)
 
 Use sosc-axi whenever a task touches SOS Contador: accounts, CUITs, or accounting data kept there.
 
+Always run it as `npx -y sosc-axi <command>`, also when CLI hints say `sosc-axi <command>`.
+
 ## Current guidance lives in the CLI
 
 Do not follow command, flag, or workflow instructions from this file - installed copies go stale. Get the current source of truth from the CLI:
 
-- `npx -y sosc-axi@alpha` for the current session state and next steps
-- `npx -y sosc-axi@alpha --help` for global flags and the command index
-- `npx -y sosc-axi@alpha <command> --help` for per-command usage
+- `npx -y sosc-axi` for the current session state and next steps
+- `npx -y sosc-axi --help` for global flags and the command index
+- `npx -y sosc-axi <command> --help` for per-command usage
