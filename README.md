@@ -1,21 +1,22 @@
 <h1 align="center">sosc-axi</h1>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/sosc-axi"><img alt="npm" src="https://img.shields.io/npm/v/sosc-axi/alpha?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/sosc-axi"><img alt="npm" src="https://img.shields.io/npm/v/sosc-axi?style=flat-square" /></a>
   <a href="https://github.com/dalecaru/sosc-axi/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dalecaru/sosc-axi/ci.yml?branch=main&style=flat-square&label=ci" /></a>
   <a href="https://github.com/dalecaru/sosc-axi/actions/workflows/release-please.yml"><img alt="Release" src="https://img.shields.io/github/actions/workflow/status/dalecaru/sosc-axi/release-please.yml?branch=main&style=flat-square&label=release" /></a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue?style=flat-square" />
 </p>
 
-Agent-ergonomic CLI for the [SOS Contador](https://www.sos-contador.com) accounting API (Argentina), built on the [AXI](https://axi.md) conventions: token-efficient [TOON](https://toonformat.dev) output, structured errors on stdout, no interactive prompts, and next-step hints.
-
-> Alpha. Commands and output may change between releases.
+Agent-ergonomic CLI for the [SOS Contador](https://www.sos-contador.com) accounting API (Argentina), built on the [AXI](https://axi.md) conventions: token-efficient [TOON](https://toonformat.dev) output, structured errors on stdout, next-step hints, and no interactive prompts (except `login`, which the user runs in their own terminal).
 
 ## Use
 
 ```sh
-npx -y sosc-axi@alpha
+npx -y sosc-axi                # no install, always the latest release
+npm install -g sosc-axi        # or install it as `sosc-axi`
 ```
+
+The examples below use the installed `sosc-axi`; with npx, prefix them with `npx -y`.
 
 ## Accounts and CUITs
 
@@ -90,24 +91,13 @@ bun run build:skill --check    # fail if stale (also covered by bun test)
 
 ## Releases
 
-Versions follow [SemVer](https://semver.org) and are cut by [release-please](https://github.com/googleapis/release-please) from [Conventional Commits](https://www.conventionalcommits.org) on `main`:
+Releases are cut by [release-please](https://github.com/googleapis/release-please) from [Conventional Commits](https://www.conventionalcommits.org) on `main` and published to npm `latest`. While on 0.x:
 
-- `fix:` -> patch, `feat:` -> minor, `feat!:` / `BREAKING CHANGE:` -> major (minor while on 0.x)
-- `docs:`, `chore:`, `test:`, `refactor:` -> no release on their own
+- `fix:`, `feat:` -> patch (`0.1.1` -> `0.1.2`)
+- `feat!:` / `BREAKING CHANGE:` -> minor (`0.1.x` -> `0.2.0`)
+- `docs:`, `chore:`, `ci:`, `test:`, `refactor:` -> no release on their own
 
 Every push to `main` updates a release PR with the next version and the `CHANGELOG.md` entry. Merging it tags the release, creates the GitHub release and publishes to npm with provenance. `CHANGELOG.md` and `.release-please-manifest.json` are generated, never edit them (CI rejects PRs that do).
-
-Release channels, picked from the version:
-
-| Version | npm dist-tag | How to get there |
-| --- | --- | --- |
-| `0.x.y-alpha.N` | `alpha` | default while `prerelease-type` is `alpha` |
-| `0.x.y-rc.N` | `rc` | set `prerelease-type` to `rc` and push a commit with footer `Release-As: 0.x.y-rc.0` |
-| `x.y.z` | `latest` | drop `prerelease`, `prerelease-type` and `versioning` from `release-please-config.json` and push a commit with footer `Release-As: x.y.z` |
-
-```sh
-git commit --allow-empty -m "chore: release 0.1.0-rc.0" -m "Release-As: 0.1.0-rc.0"
-```
 
 ## License
 

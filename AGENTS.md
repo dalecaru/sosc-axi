@@ -28,7 +28,7 @@ Generated, never hand-edited: `openapi/` (`bun run sync:openapi`), `skills/sosc-
 
 ## Release
 
-Commits follow Conventional Commits; release-please cuts versions and the changelog, and npm dist-tags follow the version ([README Releases](README.md#releases)).
+Commits follow Conventional Commits; release-please cuts the changelog and bumps the patch for `fix`/`feat` and the minor for breaking changes while on 0.x ([README Releases](README.md#releases)).
 
 ## Maintaining this file
 
