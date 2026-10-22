@@ -42,21 +42,29 @@ describe("listado", () => {
     expect(calls[0]!.auth).toBe("Bearer jwtc-11");
   });
 
-  test("date range uses entre_fechas; a full page hints the next one", async () => {
+  test("date range uses entre_fechas; pagina is sent as a row offset; a full page hints the next one", async () => {
     loggedIn();
     const calls = mockApi({
-      "GET /x/entre_fechas?pagina=2&registros=1&fecha_desde=2026-01-01&fecha_hasta=2026-01-31": { items: [{}] },
+      "GET /x/entre_fechas?pagina=4&registros=3&fecha_desde=2026-01-01&fecha_hasta=2026-01-31": { items: [{}, {}, {}] },
     });
-    const out = await run(["--desde", "2026-01-01", "--hasta", "2026-01-31", "--pagina", "2", "--registros", "1"]);
+    const out = await run(["--desde", "2026-01-01", "--hasta", "2026-01-31", "--pagina", "2", "--registros", "3"]);
     expect(calls).toHaveLength(1);
-    expect(out.count).toBe("1 compras in 2026-01-01 to 2026-01-31, page 2");
-    expect(out.compras).toEqual([{ id: "", fecha: "", factura: "", proveedor: "", cuit: "", total: 0, cae: "" }]);
+    expect(out.count).toBe("3 compras in 2026-01-01 to 2026-01-31, page 2");
+    expect((out.compras as unknown[])[0]).toEqual({
+      id: "",
+      fecha: "",
+      factura: "",
+      proveedor: "",
+      cuit: "",
+      total: 0,
+      cae: "",
+    });
     expect(out.help).toEqual(["Run with `--pagina 3` for more"]);
   });
 
   test("empty states", async () => {
     loggedIn();
-    mockApi({ "GET /x/hoy?pagina=1&registros=50": { items: [] }, "GET /x/hoy?pagina=3&registros=50": {} });
+    mockApi({ "GET /x/hoy?pagina=1&registros=50": { items: [] }, "GET /x/hoy?pagina=101&registros=50": {} });
     expect(await run(["--periodo", "hoy"])).toEqual({ compras: "0 compras in hoy" });
     expect(await run(["--periodo", "hoy", "--pagina", "3"])).toEqual({ compras: "0 compras on page 3 (hoy)" });
   });

@@ -81,7 +81,8 @@ export async function listado(opts: {
   const pagina = positive("pagina", v.pagina, 1);
   const registros = positive("registros", v.registros, 50);
 
-  const query = new URLSearchParams({ pagina: String(pagina), registros: String(registros) });
+  // The API reads pagina as a 1-based row offset, not a page number.
+  const query = new URLSearchParams({ pagina: String((pagina - 1) * registros + 1), registros: String(registros) });
   if (range) {
     query.set("fecha_desde", date("desde", v.desde!));
     query.set("fecha_hasta", date("hasta", v.hasta!));
