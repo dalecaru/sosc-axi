@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, expect, test } from "bun:test";
+import { afterAll, beforeAll, beforeEach, expect, test } from "bun:test";
 import { mkdtempSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,13 +29,19 @@ const server = Bun.serve({
 });
 afterAll(() => server.stop());
 
+// Run the bundle users get via npx, on Node (whatever `node` is on PATH; CI sets the version matrix).
+const bin = join(import.meta.dir, "../dist/sosc-axi.js");
+beforeAll(() => {
+  if (Bun.spawnSync(["bun", "run", "build"], { cwd: join(import.meta.dir, "..") }).exitCode !== 0) throw new Error("build failed");
+});
+
 let home: string;
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "sosc-axi-"));
 });
 
 async function run(args: string[], stdin?: string) {
-  const proc = Bun.spawn(["bun", join(import.meta.dir, "../bin/sosc-axi.ts"), ...args], {
+  const proc = Bun.spawn(["node", bin, ...args], {
     env: { ...process.env, SOSC_AXI_HOME: home, SOSC_API_URL: server.url.href, SOSC_PASSWORD: "" },
     stdin: stdin === undefined ? "ignore" : new Blob([stdin]),
     stdout: "pipe",

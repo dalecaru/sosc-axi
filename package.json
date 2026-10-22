@@ -39,13 +39,15 @@
     "build": "rm -rf dist && bun build bin/sosc-axi.ts --target node --splitting --outdir dist",
     "build:skill": "bun scripts/build-skill.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test && tsc --noEmit -p scripts",
     "sync:openapi": "bun scripts/sync-openapi.ts",
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/node": "^20",
     "axi-sdk-js": "^0.1.13",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "bun@1.3.14"
 }

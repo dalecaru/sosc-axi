@@ -7,7 +7,7 @@
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
-    "types": ["bun"],
+    "types": ["node"], // shipped code runs on Node: Bun globals must not typecheck here
 
     // Bundler mode
     "moduleResolution": "bundler",
@@ -26,5 +26,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["bin", "src"]
 }

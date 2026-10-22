@@ -20,6 +20,8 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
       - uses: oven-sh/setup-bun@v2
         if: ${{ steps.release.outputs.release_created }}
+        with:
+          bun-version-file: package.json
       - uses: actions/setup-node@v4
         if: ${{ steps.release.outputs.release_created }}
         with:

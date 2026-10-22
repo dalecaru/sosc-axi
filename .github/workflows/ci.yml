@@ -8,15 +8,18 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22, 24] # engines.node >= 20; tests spawn the built dist on this Node
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun test
-      - run: bun run build
-      # the published binary runs on Node, so smoke-test it there
-      - run: node dist/sosc-axi.js --version && node dist/sosc-axi.js
+      - run: npm pack --dry-run
