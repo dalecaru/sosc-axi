@@ -65,6 +65,12 @@ describe("errors", () => {
     await expectAxiError(api("/x"), "NETWORK_ERROR", "Could not reach the SOS Contador API (ECONNREFUSED)");
   });
 
+  test("a body cut off mid-read is NETWORK_ERROR", async () => {
+    const body = new ReadableStream({ pull: (c) => c.error(new TypeError("terminated")) });
+    spyOn(globalThis, "fetch").mockResolvedValue(new Response(body));
+    await expectAxiError(api("/x"), "NETWORK_ERROR", "Could not reach the SOS Contador API (terminated)");
+  });
+
   test.each([401, 403])("HTTP %d is AUTH_REQUIRED with a re-login hint for the user", async (status) => {
     mockApi({ "GET /x": Response.json({ mensaje: "token vencido" }, { status }) });
     const e = await expectAxiError(

@@ -182,7 +182,8 @@ describe("create", () => {
     const path = file(null);
     writeFileSync(
       path,
-      JSON.stringify({ ...VENTA, descuento: 0, productos: [{ fc: 1, fu: 1 }], imputaciones: [{ v: 1 }] })
+      JSON.stringify({ ...VENTA, numero: 0, descuento: 0, productos: [{ fc: 1, fu: 1 }], imputaciones: [{ v: 1 }] })
+        .replace('"numero":0', '"numero":-1e400')
         .replace('"descuento":0', '"descuento":1e400')
         .replace('"fu":1', '"fu":1e400')
         .replace('"v":1', '"v":1e400'),
@@ -190,7 +191,7 @@ describe("create", () => {
     await expectAxiError(
       create(["--file", path, "--dry-run"]),
       "VALIDATION_ERROR",
-      "descuento must be a number >= 0; productos[0].fu must be a positive number; imputaciones[0].v must be a positive number",
+      "descuento must be a number >= 0; productos[0].fu must be a positive number; imputaciones[0].v must be a positive number; numbers out of range: productos[0].fu, numero, descuento, imputaciones[0].v",
     );
     expect(calls).toEqual([]);
   });

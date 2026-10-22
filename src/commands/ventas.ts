@@ -64,6 +64,14 @@ function validCuit(v: unknown) {
 
 const isPositive = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v > 0;
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+/** Paths of numbers JSON.parse could not represent (1e400 is Infinity, which JSON.stringify sends as null). */
+const nonFinite = (v: unknown, path: string): string[] => {
+  if (typeof v === "number") return Number.isFinite(v) ? [] : [path];
+  if (!v || typeof v !== "object") return [];
+  return Object.entries(v).flatMap(([k, x]) =>
+    nonFinite(x, Array.isArray(v) ? `${path}[${k}]` : path ? `${path}.${k}` : k),
+  );
+};
 const scalar = (v: unknown) => (typeof v === "string" || typeof v === "number" ? str(v) : "");
 
 function problems(v: Record<string, unknown>) {
@@ -109,6 +117,8 @@ function problems(v: Record<string, unknown>) {
     }
     if (!isPositive(m.v)) out.push(`imputaciones[${i}].v must be a positive number`);
   });
+  const huge = nonFinite(v, "");
+  if (huge.length) out.push(`numbers out of range: ${huge.join(", ")}`);
   return out;
 }
 

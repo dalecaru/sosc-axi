@@ -27,15 +27,16 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
     body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
   };
   let res: Response;
+  let bytes: Buffer;
   try {
     res = await (method === "GET" && init.body !== undefined ? getWithBody(url, init) : fetch(url, init));
+    bytes = Buffer.from(await res.arrayBuffer());
   } catch (error) {
     throw new AxiError(`Could not reach the SOS Contador API (${(error as Error).message})`, "NETWORK_ERROR", [
       "Check the network connection and retry",
     ]);
   }
 
-  const bytes = Buffer.from(await res.arrayBuffer());
   const raw = bytes.toString();
   let data: unknown = raw;
   try {
