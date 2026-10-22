@@ -16,7 +16,12 @@ export function home() {
     cuit: active ? `${active.cuit}${active.nombre ? ` (${active.nombre})` : ""}` : "none selected",
     accounts: `${names.length} logged in`,
     help: [
-      active ? "Run `sosc-axi cuits` to list or switch CUITs" : "Run `sosc-axi cuits use <id|cuit>` to select a CUIT",
+      ...(active
+        ? [
+            "Run `sosc-axi ventas` or `sosc-axi compras` to list invoices",
+            "Run `sosc-axi cuits` to list or switch CUITs",
+          ]
+        : ["Run `sosc-axi cuits use <id|cuit>` to select a CUIT"]),
       ...(names.length > 1 ? ["Run `sosc-axi accounts` to see all logged-in accounts"] : []),
     ],
   };

@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { cuitRows, findCuits, resolveAccount, token } from "../src/auth.ts";
+import { activeCuit, cuitRows, findCuits, resolveAccount, token } from "../src/auth.ts";
+import { loadStore } from "../src/store.ts";
+import { expectAxiError, mockApi, seed, useSandbox } from "./helpers.ts";
+
+useSandbox();
 
 describe("resolveAccount", () => {
   const store = {
@@ -77,4 +81,36 @@ test("cuitRows marks the active CUIT", () => {
     { id: "1", cuit: "20123456789", nombre: "", active: "" },
     { id: "2", cuit: "30712345671", nombre: "SRL", active: "*" },
   ]);
+});
+
+describe("activeCuit", () => {
+  const store = (jwtc?: string, cuit = "11") => ({
+    default: "ana@x.com",
+    accounts: { "ana@x.com": { jwt: "user-jwt", cuit, cuits: [{ id: "11", cuit: "20123456789", jwtc }] } },
+  });
+
+  test("returns the cached per-CUIT token without calling the API", async () => {
+    const calls = mockApi({});
+    expect(await activeCuit(store("cached"))).toEqual(["ana@x.com", expect.objectContaining({ id: "11" }), "cached"]);
+    expect(calls).toEqual([]);
+  });
+
+  test("fetches and stores missing credentials with the user token", async () => {
+    const s = store();
+    seed(s);
+    const calls = mockApi({ "GET /cuit/credentials/11": { jwt: "fresh" } });
+    expect((await activeCuit(s))[2]).toBe("fresh");
+    expect(calls[0]!.auth).toBe("Bearer user-jwt");
+    expect(loadStore().accounts["ana@x.com"]!.cuits[0]!.jwtc).toBe("fresh");
+  });
+
+  test("no credentials in the response", async () => {
+    mockApi({ "GET /cuit/credentials/11": {} });
+    await expectAxiError(activeCuit(store()), "API_ERROR", "no credentials for CUIT 20123456789");
+  });
+
+  test("no active CUIT points at cuits use", async () => {
+    const e = await expectAxiError(activeCuit(store("x", "")), "VALIDATION_ERROR", "No active CUIT for ana@x.com");
+    expect(e.suggestions[0]).toContain("sosc-axi cuits use");
+  });
 });

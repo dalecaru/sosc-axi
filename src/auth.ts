@@ -1,5 +1,6 @@
 import { AxiError } from "axi-sdk-js";
-import type { Account, Cuit, Store } from "./store.ts";
+import { api } from "./api.ts";
+import { type Account, type Cuit, type Store, saveStore } from "./store.ts";
 
 export const LOGIN_HINT =
   "Run `sosc-axi login --usuario <email> --password-stdin` (password on stdin, or set SOSC_PASSWORD)";
@@ -49,3 +50,28 @@ export function token(payload: unknown, keys: string[]): string | undefined {
 
 export const cuitRows = (cuits: Cuit[], active?: string) =>
   cuits.map((c) => ({ id: c.id, cuit: c.cuit, nombre: c.nombre ?? "", active: c.id === active ? "*" : "" }));
+
+/** Fetches the per-CUIT token (jwtc) with the user token and caches it on the CUIT. */
+export async function fetchCuitToken(account: Account, cuit: Cuit, usuario: string): Promise<string> {
+  const res = await api(`/cuit/credentials/${encodeURIComponent(cuit.id)}`, { token: account.jwt, usuario });
+  const jwtc = token(res, ["jwtc", "jwt", "token"]);
+  if (!jwtc) throw new AxiError(`SOS Contador returned no credentials for CUIT ${cuit.cuit}`, "API_ERROR");
+  cuit.jwtc = jwtc;
+  return jwtc;
+}
+
+/** The account's active CUIT and its token, for business endpoints (`cuitJwt` in the spec). */
+export async function activeCuit(store: Store, usuario?: string): Promise<[string, Cuit, string]> {
+  const [name, account] = resolveAccount(store, usuario);
+  const cuit = account.cuits.find((c) => c.id === account.cuit);
+  if (!cuit) {
+    throw new AxiError(`No active CUIT for ${name}`, "VALIDATION_ERROR", [
+      "Run `sosc-axi cuits use <id|cuit>` to select the CUIT to work with",
+    ]);
+  }
+  if (!cuit.jwtc) {
+    await fetchCuitToken(account, cuit, name);
+    saveStore(store);
+  }
+  return [name, cuit, cuit.jwtc!];
+}

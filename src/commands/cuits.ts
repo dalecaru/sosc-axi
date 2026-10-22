@@ -1,7 +1,7 @@
 import { AxiError } from "axi-sdk-js";
 import { api } from "../api.ts";
 import { parse } from "../args.ts";
-import { cuitRows, findCuits, resolveAccount, token } from "../auth.ts";
+import { cuitRows, fetchCuitToken, findCuits, resolveAccount } from "../auth.ts";
 import { type Cuit, loadStore, saveStore, tokenStatus } from "../store.ts";
 import type { Command } from "./index.ts";
 
@@ -56,10 +56,7 @@ async function use(args: string[]) {
     ]);
   }
 
-  const res = await api(`/cuit/credentials/${encodeURIComponent(cuit.id)}`, { token: account.jwt, usuario });
-  const jwtc = token(res, ["jwtc", "jwt", "token"]);
-  if (!jwtc) throw new AxiError(`SOS Contador returned no credentials for CUIT ${cuit.cuit}`, "API_ERROR");
-  cuit.jwtc = jwtc;
+  const jwtc = await fetchCuitToken(account, cuit, usuario);
   const already = account.cuit === cuit.id;
   account.cuit = cuit.id;
   saveStore(store);
