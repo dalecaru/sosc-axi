@@ -71,6 +71,27 @@ test("stops paging a side list at its first empty page, whatever paginas claims"
   expect(calls).toHaveLength(4);
 });
 
+test("gives up after 50 pages of a side list instead of mislabeling rows", async () => {
+  loggedIn();
+  const endless = Object.fromEntries(
+    Array.from({ length: 51 }, (_, i) => [
+      `GET /cliente/listado?pagina=${i + 1}&registros=500&cliente=true`,
+      { paginas: 1e9, items: [{ id: i }] },
+    ]),
+  );
+  const calls = mockApi({
+    "GET /cliente/listado?pagina=1&registros=50&cliente=true&proveedor=true": {
+      paginas: 1,
+      items: [{ id: 5, cuit: "1", clipro: "Ana" }],
+    },
+    "GET /cliente/listado?pagina=1&registros=500&proveedor=true": { paginas: 1, items: [] },
+    ...endless,
+  });
+  const error = await expectAxiError(clientes.run([], undefined), "API_ERROR", "more than 50 pages");
+  expect(error.suggestions.join()).toContain("--tipo");
+  expect(calls.filter((c) => c.path.endsWith("registros=500&cliente=true"))).toHaveLength(50);
+});
+
 test("--tipo proveedor asks only for proveedores and labels them so", async () => {
   loggedIn();
   mockApi({

@@ -1,3 +1,4 @@
+import { AxiError } from "axi-sdk-js";
 import { api } from "../api.ts";
 import { parse } from "../args.ts";
 import { activeCuit } from "../auth.ts";
@@ -49,6 +50,10 @@ async function run(args: string[]) {
   const ids = async (side: string) => {
     const seen = new Set<string>();
     for (let p = 1, total = 1; p <= total; p++) {
+      if (p > 50)
+        throw new AxiError(`The ${side} list has more than 50 pages; cannot label rows`, "API_ERROR", [
+          "Run with `--tipo cliente` or `--tipo proveedor` instead",
+        ]);
       const page = await api<{ paginas?: number; items?: Clipro[] }>(
         `/cliente/listado?pagina=${p}&registros=500&${side}=true`,
         { token: jwtc, usuario },
