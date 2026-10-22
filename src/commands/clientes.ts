@@ -66,8 +66,15 @@ async function run(args: string[]) {
     return seen;
   };
   const [isCliente, isProveedor] = tipo ? [] : await Promise.all([ids("cliente"), ids("proveedor")]);
-  const tipoOf = (id: string) =>
-    tipo ?? (isCliente!.has(id) ? (isProveedor!.has(id) ? "ambos" : "cliente") : "proveedor");
+  const tipoOf = (id: string) => {
+    if (tipo) return tipo;
+    const [c, p] = [isCliente!.has(id), isProveedor!.has(id)];
+    if (!c && !p)
+      throw new AxiError(`Row ${id} is in neither the cliente nor the proveedor list; cannot label it`, "API_ERROR", [
+        "Run again, or with `--tipo cliente` or `--tipo proveedor`",
+      ]);
+    return c ? (p ? "ambos" : "cliente") : "proveedor";
+  };
 
   return {
     cuit: cuit.cuit,

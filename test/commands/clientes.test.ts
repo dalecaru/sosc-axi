@@ -71,6 +71,20 @@ test("stops paging a side list at its first empty page, whatever paginas claims"
   expect(calls).toHaveLength(4);
 });
 
+test("fails instead of guessing a tipo for a row in neither side list", async () => {
+  loggedIn();
+  mockApi({
+    "GET /cliente/listado?pagina=1&registros=50&cliente=true&proveedor=true": {
+      paginas: 1,
+      items: [{ id: 5, cuit: "1", clipro: "Gone" }],
+    },
+    "GET /cliente/listado?pagina=1&registros=500&cliente=true": { paginas: 1, items: [{ id: 6 }] },
+    "GET /cliente/listado?pagina=1&registros=500&proveedor=true": { paginas: 1, items: [{ id: 7 }] },
+  });
+  const error = await expectAxiError(clientes.run([], undefined), "API_ERROR", "neither");
+  expect(error.suggestions.join()).toContain("--tipo");
+});
+
 test("gives up after 50 pages of a side list instead of mislabeling rows", async () => {
   loggedIn();
   const endless = Object.fromEntries(
