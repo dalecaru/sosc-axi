@@ -195,6 +195,17 @@ describe("create", () => {
     expect(calls).toEqual([]);
   });
 
+  test("accepts a CUIT whose mod 11 verifier 10 maps to check digit 9", async () => {
+    mockApi({});
+    const out = await create(["--file", file({ ...VENTA, cuitclipro: "30658686149" }), "--dry-run"]);
+    expect(out.body).toMatchObject({ cuitclipro: "30658686149" });
+    await expectAxiError(
+      create(["--file", file({ ...VENTA, cuitclipro: "30658686140" }), "--dry-run"]),
+      "VALIDATION_ERROR",
+      "not a valid CUIT",
+    );
+  });
+
   test("lists every problem at once", async () => {
     mockApi({});
     await expectAxiError(

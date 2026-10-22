@@ -53,13 +53,13 @@ const FCNCND = ["F", "NC", "ND"];
 const LETRAS = ["A", "B", "C", "E", "M"];
 const ALICUOTAS = [0, 2.5, 5, 10.5, 21, 27];
 
-/** AFIP CUIT: 11 digits, the last a mod 11 check digit. */
+/** AFIP CUIT: 11 digits, the last a mod 11 check digit (11 maps to 0, 10 to 9). */
 function validCuit(v: unknown) {
   const d = scalar(v);
   if (!/^\d{11}$/.test(d)) return false;
   const sum = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2].reduce((s, w, i) => s + w * Number(d[i]), 0);
   const check = 11 - (sum % 11);
-  return (check === 11 ? 0 : check) === Number(d[10]);
+  return (check === 11 ? 0 : check === 10 ? 9 : check) === Number(d[10]);
 }
 
 const isPositive = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v > 0;
