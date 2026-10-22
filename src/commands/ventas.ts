@@ -158,8 +158,8 @@ async function create(args: string[]) {
     const e = error as AxiError;
     throw new AxiError(e.message, e.code, [...(e.suggestions ?? []), retry]);
   }
-  const id = scalar(res.id ?? res.idventa ?? res.idcomprobante);
-  if (!/^\d+$/.test(id)) {
+  const id = [res.id, res.idventa, res.idcomprobante].map(scalar).find((v) => /^\d+$/.test(v));
+  if (!id) {
     throw new AxiError(
       "PUT /venta answered without a venta id: the venta may or may not have been created",
       "API_ERROR",

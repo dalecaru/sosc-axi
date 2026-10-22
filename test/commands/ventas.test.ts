@@ -84,24 +84,27 @@ describe("create", () => {
     expect((calls[1]!.body as Record<string, unknown>).uniqueid).not.toBe(body.uniqueid);
   });
 
-  test.each([[{ ok: true }], [{ id: { n: 5 } }], [{ idventa: "abc" }], [null]])(
-    "a response %j without a numeric id may or may not have created the venta",
-    async (res) => {
-      loggedIn();
-      mockApi({ "PUT /venta": res });
-      const e = await expectAxiError(
-        create(["--file", file({ ...VENTA, uniqueid: "u-3" })]),
-        "API_ERROR",
-        "may or may not have been created",
-      );
-      expect(e.suggestions).toContain("Run `sosc-axi ventas --periodo hoy` to check");
-      expect(e.suggestions.join()).toContain('"uniqueid": "u-3"');
-    },
-  );
-
-  test("reads the id from idventa and ignores a non-scalar cae", async () => {
+  test.each([
+    [{ ok: true }],
+    [{ id: { n: 5 } }],
+    [{ idventa: "abc" }],
+    [{ id: "", idventa: null, idcomprobante: "x" }],
+    [null],
+  ])("a response %j without a numeric id may or may not have created the venta", async (res) => {
     loggedIn();
-    mockApi({ "PUT /venta": { idventa: "77", cae: { numero: 1 } } });
+    mockApi({ "PUT /venta": res });
+    const e = await expectAxiError(
+      create(["--file", file({ ...VENTA, uniqueid: "u-3" })]),
+      "API_ERROR",
+      "may or may not have been created",
+    );
+    expect(e.suggestions).toContain("Run `sosc-axi ventas --periodo hoy` to check");
+    expect(e.suggestions.join()).toContain('"uniqueid": "u-3"');
+  });
+
+  test("reads the id from the first numeric alias and ignores a non-scalar cae", async () => {
+    loggedIn();
+    mockApi({ "PUT /venta": { id: "", idventa: "77", cae: { numero: 1 } } });
     const out = await create(["--file", file(VENTA)]);
     expect(out).toMatchObject({ venta: "created 77 without CAE", id: "77" });
     expect(out.cae).toBeUndefined();
