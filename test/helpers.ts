@@ -1,5 +1,7 @@
-import { afterEach, beforeEach, expect, mock, spyOn } from "bun:test";
+import { afterEach, beforeEach, expect, mock } from "bun:test";
 import { mkdtempSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type Store, saveStore } from "../src/store.ts";
@@ -20,6 +22,7 @@ export function useSandbox() {
   });
   afterEach(() => {
     mock.restore();
+    routes = {};
     for (const k of ENV) {
       if (saved[k] === undefined) delete process.env[k];
       else process.env[k] = saved[k];
@@ -30,23 +33,42 @@ export function useSandbox() {
 export type Call = { method: string; path: string; auth?: string; body?: unknown };
 type Route = unknown | ((call: Call) => unknown);
 
-/** Stubs fetch with `"METHOD /path"` routes (JSON body or a Response) and records every call. */
-export function mockApi(routes: Record<string, Route>): Call[] {
-  const calls: Call[] = [];
-  spyOn(globalThis, "fetch").mockImplementation((async (input: string | URL | Request, init?: RequestInit) => {
-    const headers = (init?.headers ?? {}) as Record<string, string>;
-    const call: Call = {
-      method: init?.method ?? "GET",
-      path: String(input).replace(API_URL, ""),
-      auth: headers.Authorization,
-      body: init?.body ? JSON.parse(String(init.body)) : undefined,
-    };
-    calls.push(call);
-    const route = routes[`${call.method} ${call.path}`];
-    if (route === undefined) return new Response(`no mock for ${call.method} ${call.path}`, { status: 404 });
-    const out = typeof route === "function" ? await route(call) : route;
-    return out instanceof Response ? out : Response.json(out);
-  }) as typeof fetch);
+let routes: Record<string, Route> = {};
+let calls: Call[] = [];
+
+// A real server, not a fetch stub, so api()'s GET-with-body path (node:http) is covered too.
+// node:http because Bun.serve drops GET bodies.
+const server = createServer(async (req, res) => {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(chunk as Buffer);
+  const text = Buffer.concat(chunks).toString();
+  const call: Call = {
+    method: req.method ?? "GET",
+    path: req.url ?? "/",
+    auth: req.headers.authorization,
+    body: text ? JSON.parse(text) : undefined,
+  };
+  calls.push(call);
+  const route = routes[`${call.method} ${call.path}`];
+  const out =
+    route === undefined
+      ? new Response(`no mock for ${call.method} ${call.path}`, { status: 404 })
+      : typeof route === "function"
+        ? await route(call)
+        : route;
+  const response = out instanceof Response ? out : Response.json(out);
+  res.writeHead(response.status, Object.fromEntries(response.headers));
+  res.end(Buffer.from(await response.arrayBuffer()));
+});
+await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+server.unref();
+const serverUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
+
+/** Serves `"METHOD /path"` routes (JSON body or a Response), points SOSC_API_URL at them and records every call. */
+export function mockApi(next: Record<string, Route>): Call[] {
+  routes = next;
+  calls = [];
+  process.env.SOSC_API_URL = serverUrl;
   return calls;
 }
 

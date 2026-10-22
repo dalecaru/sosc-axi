@@ -27,6 +27,13 @@ const server = Bun.serve({
         : new Response("unauthorized", { status: 401 }),
     "/cuit/credentials/:id": (req) => Response.json({ jwt: jwt(`cuit-${req.params.id}`) }),
     "/cuit/parametros": () => Response.json({}),
+    // Bun.serve drops GET bodies, so this only proves Node sends the GET-with-body request at all.
+    "/cuentacorriente/listado": (req) =>
+      Response.json(
+        req.method === "GET" && req.headers.get("content-length") !== "0"
+          ? { items: [{ idclipro: "7", clipro: "30712345671 Estudio SRL", montodebe: 10, montohaber: 4 }] }
+          : { error: "Error: no body" },
+      ),
   },
 });
 afterAll(() => server.stop());
@@ -134,4 +141,13 @@ test("multiple accounts, switching default, selecting CUITs, logout", async () =
   r = await run(["logout", "--usuario", "ana@x.com"]);
   expect(r.code).toBe(0);
   expect(r.out).toContain("(no-op)");
+});
+
+test("cuentacorriente sends its filters as a GET body on Node", async () => {
+  await login("ana@x.com");
+  await run(["cuits", "use", "30712345671"]);
+  const { out, code } = await run(["cuentacorriente", "--desde", "2026-01-01", "--hasta", "2026-01-31"]);
+  expect(code).toBe(0);
+  expect(out).toContain("1 clientes in 2026-01-01 to 2026-01-31");
+  expect(out).toContain("Estudio SRL");
 });

@@ -22,7 +22,11 @@ type Comprobante = {
   montototal?: unknown;
   cae?: unknown;
   clipro?: { cuit?: unknown; clipro?: unknown };
+  /** cobro, pago and recibo listings name the counterparty here instead of clipro. */
+  cliente?: { cuit?: unknown; clipro?: unknown };
 };
+
+type ListCommand = "ventas" | "compras" | "cobros" | "pagos" | "recibos";
 
 export function oneOf(flag: string, value: string | undefined, allowed: string[]): string | undefined {
   if (value !== undefined && !allowed.includes(value)) {
@@ -37,25 +41,30 @@ const positive = (flag: string, value: string | undefined, fallback: number) => 
   return Number(value);
 };
 
-const date = (flag: string, value: string) => {
+export const date = (flag: string, value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new AxiError(`--${flag} must be AAAA-MM-DD`, "VALIDATION_ERROR");
   return value;
 };
 
 /**
- * GET listing shared by ventas and compras: `{base}/{periodo}{suffix}` with paging and an
- * optional date range. Both return `{items: [...]}` without a total, so a full page hints the next one.
+ * GET listing shared by ventas, compras, cobros, pagos and recibos: `{base}/{periodo}{suffix}` with paging
+ * and an optional date range. All return `{items: [...]}` without a total, so a full page hints the next one.
  */
 export async function listado(opts: {
-  command: "ventas" | "compras";
+  command: ListCommand;
   /** Column naming the counterparty: cliente for ventas, proveedor for compras. */
   party: "cliente" | "proveedor";
   args: string[];
+  /** false: no --desde/--hasta (cobro, pago and recibo reject entre_fechas). */
+  range?: false;
+  /** false: no cae column (cobros, pagos and recibos never carry one). */
+  cae?: false;
   flags?: Record<string, { type: "string" }>;
   path: (periodo: string, values: Record<string, string | undefined>) => string;
 }) {
   const { command, party } = opts;
-  const { values } = parse(command, opts.args, { ...LISTADO_FLAGS, ...opts.flags });
+  const { desde, hasta, ...noRange } = LISTADO_FLAGS;
+  const { values } = parse(command, opts.args, { ...(opts.range === false ? noRange : LISTADO_FLAGS), ...opts.flags });
   const v = values as Record<string, string | undefined>;
   const range = v.desde !== undefined || v.hasta !== undefined;
   if (range && v.periodo !== undefined) {
@@ -89,15 +98,18 @@ export async function listado(opts: {
   return {
     cuit: cuit.cuit,
     count: `${items.length} ${command} in ${when}, page ${pagina}`,
-    [command]: items.map((c) => ({
-      id: String(c.id ?? ""),
-      fecha: String(c.fecha ?? "").slice(0, 10),
-      factura: String(c.factura ?? ""),
-      [party]: String(c.clipro?.clipro ?? "").trim(),
-      cuit: String(c.clipro?.cuit ?? ""),
-      total: Number(c.montototal ?? 0),
-      cae: String(c.cae ?? ""),
-    })),
+    [command]: items.map((c) => {
+      const p = c.clipro ?? c.cliente;
+      return {
+        id: String(c.id ?? ""),
+        fecha: String(c.fecha ?? "").slice(0, 10),
+        factura: String(c.factura ?? ""),
+        [party]: String(p?.clipro ?? "").trim(),
+        cuit: String(p?.cuit ?? ""),
+        total: Number(c.montototal ?? 0),
+        ...(opts.cae === false ? {} : { cae: String(c.cae ?? "") }),
+      };
+    }),
     ...(items.length === registros ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
   };
 }
@@ -110,13 +122,13 @@ type Detalle = {
 
 const str = (v: unknown) => (v == null ? "" : String(v).trim());
 const num = (v: unknown) => Number(v) || 0;
-const cents = (n: number) => Math.round(n * 100) / 100;
+export const cents = (n: number) => Math.round(n * 100) / 100;
 
 /** `{base}/detalle/{id}`: header, accounting lines (imputaciones) and products of one comprobante. */
 export async function detalle(opts: {
-  command: "ventas" | "compras";
+  command: ListCommand;
   party: "cliente" | "proveedor";
-  base: "/venta" | "/compra";
+  base: "/venta" | "/compra" | "/pago";
   args: string[];
 }) {
   const { command, party } = opts;
@@ -133,7 +145,7 @@ export async function detalle(opts: {
   try {
     res = await api<Detalle>(`${opts.base}/detalle/${id}`, { token: jwtc, usuario });
   } catch (error) {
-    // The API answers unknown ids with "Imposible cargar detalles de la venta", for compras too.
+    // The API answers unknown ids with "Imposible cargar detalles de la venta" (or "del cobro/pago").
     if ((error as AxiError).code === "API_ERROR" && /imposible cargar/i.test((error as Error).message)) {
       throw new AxiError(`${command} ${id} not found for the active CUIT`, "NOT_FOUND", [
         `Run \`sosc-axi ${command}\` to list ids`,

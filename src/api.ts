@@ -1,3 +1,5 @@
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
 import { AxiError } from "axi-sdk-js";
 import { loginHint } from "./auth.ts";
 
@@ -9,16 +11,17 @@ export type RequestOptions = { method?: string; token?: string; body?: unknown; 
 export async function api<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
   const url = (process.env.SOSC_API_URL || BASE).replace(/\/$/, "") + path;
   const method = opts.method ?? "GET";
+  const init = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
+    },
+    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+  };
   let res: Response;
   try {
-    res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
-      },
-      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
-    });
+    res = await (method === "GET" && init.body !== undefined ? getWithBody(url, init) : fetch(url, init));
   } catch (error) {
     throw new AxiError(`Could not reach the SOS Contador API (${(error as Error).message})`, "NETWORK_ERROR", [
       "Check the network connection and retry",
@@ -47,6 +50,26 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
     throw new AxiError(`SOS Contador: ${apiMessage(data) ?? `HTTP ${res.status}`}`, "API_ERROR");
   }
   return data as T;
+}
+
+/** fetch refuses a body on GET, but /cuentacorriente/listado only reads its filters from one. */
+function getWithBody(url: string, init: { headers: Record<string, string>; body?: string }): Promise<Response> {
+  const body = init.body ?? "";
+  const headers = { ...init.headers, "Content-Length": String(Buffer.byteLength(body)) };
+  return new Promise((resolve, reject) => {
+    const send = url.startsWith("https:") ? httpsRequest : httpRequest;
+    const req = send(url, { method: "GET", headers }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("error", reject);
+      res.on("end", () => {
+        const text = Buffer.concat(chunks).toString();
+        resolve(new Response(text || null, { status: res.statusCode }));
+      });
+    });
+    req.on("error", reject);
+    req.end(body);
+  });
 }
 
 function apiMessage(data: unknown): string | undefined {

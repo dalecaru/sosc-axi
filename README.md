@@ -43,7 +43,7 @@ Sessions live in `~/.config/sosc-axi/accounts.json` (mode 0600). Override with `
 | `SOSC_API_URL` | API base URL (default `https://api.sos-contador.com/api-comunidad`) |
 | `SOSC_DEBUG=1` | log API responses to stderr, tokens redacted |
 
-## Ventas and compras
+## Ventas, compras, cobros, pagos and recibos
 
 Read-only listings and detail for the active CUIT, 50 rows per page:
 
@@ -52,9 +52,24 @@ sosc-axi ventas                                   # facturas of this month
 sosc-axi ventas --modo notascredito --cae sincae --periodo mes_anterior
 sosc-axi compras --desde 2026-01-01 --hasta 2026-03-31 --pagina 2
 sosc-axi ventas view 933742304                    # one invoice with imputaciones and productos
+sosc-axi cobros --periodo mes_anterior            # money in
+sosc-axi pagos view 930159905                     # one payment with imputaciones
+sosc-axi recibos                                  # receipts, list only
 ```
 
-`--periodo` is `hoy`, `ayer`, `semana`, `mes` (default) or `mes_anterior`; `--desde/--hasta` (AAAA-MM-DD) selects a range instead. `sosc-axi <command> --help` lists every flag.
+`--periodo` is `hoy`, `ayer`, `semana`, `mes` (default) or `mes_anterior`; for ventas and compras `--desde/--hasta` (AAAA-MM-DD) selects a range instead (the API has no range for cobros, pagos and recibos).
+
+## Cuenta corriente
+
+Balances per cliente or proveedor for the active CUIT, and the movements of one:
+
+```sh
+sosc-axi cuentacorriente                               # balance per cliente, this year
+sosc-axi cuentacorriente --proveedores --pendientes    # unmatched supplier movements
+sosc-axi cuentacorriente --clipro 25101884 --desde 2025-01-01   # movements with a running saldo
+```
+
+`--desde` defaults to January 1 of this year and `--hasta` to today; earlier movements fold into a "Saldo anterior" row. `sosc-axi <command> --help` lists every flag.
 
 ## API spec
 

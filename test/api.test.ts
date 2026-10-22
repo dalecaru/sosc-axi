@@ -27,6 +27,23 @@ describe("request", () => {
     expect(calls[0]).toEqual({ method: "POST", path: "/login", auth: "Bearer t", body: { a: 1 } });
   });
 
+  test("sends a GET with a JSON body (fetch refuses one) through the same error handling", async () => {
+    const calls = mockApi({
+      "GET /cc": { items: [1] },
+      "GET /cc-error": { error: "Error: Invalid date" },
+      "GET /cc-empty": new Response(null, { status: 204 }),
+    });
+    expect(await api("/cc", { token: "t", body: { CP: "C" } })).toEqual({ items: [1] });
+    expect(calls[0]).toEqual({ method: "GET", path: "/cc", auth: "Bearer t", body: { CP: "C" } });
+    await expectAxiError(api("/cc-error", { body: {} }), "API_ERROR", "SOS Contador: Invalid date");
+    expect(await api("/cc-empty", { body: {} })).toBeNull();
+  });
+
+  test("GET with a body reports an unreachable API as NETWORK_ERROR", async () => {
+    process.env.SOSC_API_URL = "http://127.0.0.1:9";
+    await expectAxiError(api("/cc", { body: {} }), "NETWORK_ERROR", "Could not reach the SOS Contador API");
+  });
+
   test("keeps non-JSON bodies as text and empty bodies as null", async () => {
     mockApi({ "GET /txt": new Response("plain"), "GET /empty": new Response("") });
     expect(await api("/txt")).toBe("plain");
