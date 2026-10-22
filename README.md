@@ -84,6 +84,17 @@ sosc-axi eventanilla                              # AFIP communications of the l
 
 `--ejercicio` defaults to this year and `--mes` (01-12) narrows it to one month. AFIP serves e-ventanilla at most 90 days back from `--hasta`. `sosc-axi <command> --help` lists every flag.
 
+## Clientes, productos and puntos de venta
+
+Master data of the active CUIT, read-only:
+
+```sh
+sosc-axi clientes                                 # clientes and proveedores, 50 per page
+sosc-axi clientes --tipo proveedor --pagina 2
+sosc-axi productos                                # id, price, IVA rate and unit
+sosc-axi puntosventa                              # number and name
+```
+
 ## API spec
 
 `openapi/sos-contador.openapi.yaml` is generated from the [official Postman documentation](https://documenter.getpostman.com/view/1566360/SWTD6vnC?version=latest), whose raw collection is kept next to it. Do not edit either file by hand.
