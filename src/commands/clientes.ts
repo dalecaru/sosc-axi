@@ -62,7 +62,10 @@ async function run(args: string[]) {
     }
     items = rows.slice(start - (first - 1) * 50, want);
     // Only the last page's length gives the total, for the page count.
-    if (items.length && page.rows.length === 50 && p < page.paginas) page = await listado((p = page.paginas), 50);
+    if (items.length && page.rows.length === 50 && p < page.paginas) {
+      p = page.paginas;
+      page = await listado(p, 50);
+    }
     paginas = Math.ceil(((p - 1) * 50 + page.rows.length) / registros);
   }
   const label = tipo === "proveedor" ? "proveedores" : "clientes";
