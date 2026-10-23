@@ -7,9 +7,10 @@ import type { Command } from "./index.ts";
 
 const help = `usage: sosc-axi eventanilla [--desde <fecha>] [--hasta <fecha>] [--usuario <email>]
 flags:
-  --desde       AAAA-MM-DD (default 30 days before --hasta); AFIP serves at most 90 days back from --hasta
+  --desde       AAAA-MM-DD (default 30 days before --hasta); AFIP serves only the last 90 days, counted from today
   --hasta       AAAA-MM-DD (default today)
 Lists the AFIP e-ventanilla communications of the active CUIT (\`sosc-axi cuits use\` selects it).
+leida is the read state today, not as of --hasta.
 examples:
   sosc-axi eventanilla
   sosc-axi eventanilla --desde 2026-07-01 --hasta 2026-09-30
@@ -42,12 +43,17 @@ async function run(args: string[]) {
     { token: jwtc, usuario },
   );
   const items = Array.isArray(res?.items) ? res.items : [];
-  // The API silently moves desde up to 90 days before hasta.
+  // The API silently moves desde up to 90 days before today, whatever hasta is.
   const from = res?.consulta?.desde ?? desde;
+  if (from > hasta) {
+    return {
+      eventanilla: `0 comunicaciones: ${desde} to ${hasta} is older than the 90 days AFIP serves (from ${from})`,
+    };
+  }
   const when = `${from} to ${res?.consulta?.hasta ?? hasta}`;
   const narrowed =
     from !== desde
-      ? { help: ["AFIP serves at most 90 days back from --hasta; query an earlier --hasta for older ones"] }
+      ? { help: [`AFIP serves only the last 90 days, from ${from}; older comunicaciones are not reachable`] }
       : {};
 
   if (!items.length) return { eventanilla: `0 comunicaciones in ${when}`, ...narrowed };
