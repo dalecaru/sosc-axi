@@ -130,6 +130,14 @@ sosc-axi cuentas                                  # plan de cuentas: codes for s
 sosc-axi centroscosto
 ```
 
+Reference tables, read-only:
+
+```sh
+sosc-axi unidades                                 # AFIP units of measure
+sosc-axi provincias                               # ids for idprovinciaiibb
+sosc-axi indices                                  # índices de ajuste por inflación per month, with axic/axii
+```
+
 Without `--tipo`, `clientes` also reads both side lists in full to label rows, so it makes extra API calls. Above 25,000 rows per side it fails with `API_ERROR`; pass `--tipo` then.
 
 ## API spec

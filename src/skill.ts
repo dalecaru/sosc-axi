@@ -3,7 +3,7 @@ import { DESCRIPTION } from "./cli.ts";
 // Trigger string agents match against to auto-load the skill. Extend it as commands land.
 export const SKILL_DESCRIPTION =
   "Operate the SOS Contador accounting API (Argentina) through the sosc-axi CLI - check the session with status, " +
-  "list and select CUITs, list and search ventas (sales) and issue them (create with CAE, PDF, email), compras (purchases), cobros (collections), pagos (payments) and recibos (receipts), read the cuenta corriente (balances) of clientes and proveedores, the libro IVA, the IVA F2002 and the AFIP e-ventanilla inbox, read the books (asientos, libro mayor, sumas y saldos), and list clientes, proveedores, productos, puntos de venta, the plan de cuentas and centros de costo. Use whenever a task touches SOS Contador or the books of an Argentine CUIT kept there.";
+  "list and select CUITs, list and search ventas (sales) and issue them (create with CAE, PDF, email), compras (purchases), cobros (collections), pagos (payments) and recibos (receipts), read the cuenta corriente (balances) of clientes and proveedores, the libro IVA, the IVA F2002 and the AFIP e-ventanilla inbox, read the books (asientos, libro mayor, sumas y saldos), and list clientes, proveedores, productos, puntos de venta, the plan de cuentas, centros de costo, AFIP units of measure, provincias and índices de ajuste por inflación. Use whenever a task touches SOS Contador or the books of an Argentine CUIT kept there.";
 
 // Hard cap so the stub cannot grow into a stale copy of the CLI help.
 export const MAX_SKILL_MARKDOWN_CHARS = 2500;
