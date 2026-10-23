@@ -128,6 +128,7 @@ sosc-axi productos                                # id, price and IVA rate
 sosc-axi puntosventa                              # number and name
 sosc-axi cuentas                                  # plan de cuentas: codes for sosc-axi mayor
 sosc-axi centroscosto
+sosc-axi modificadores                            # grupos de modificadores with their modifier productos and prices
 ```
 
 Reference tables, read-only:

@@ -15,6 +15,7 @@ import { libroiva } from "./libroiva.ts";
 import { login } from "./login.ts";
 import { logout } from "./logout.ts";
 import { mayor } from "./mayor.ts";
+import { modificadores } from "./modificadores.ts";
 import { pagos } from "./pagos.ts";
 import { productos } from "./productos.ts";
 import { provincias } from "./provincias.ts";
@@ -60,6 +61,7 @@ export const COMMANDS: Command[] = [
   puntosventa,
   cuentas,
   centroscosto,
+  modificadores,
   unidades,
   provincias,
   indices,
