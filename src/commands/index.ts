@@ -9,6 +9,7 @@ import { cuentacorriente } from "./cuentacorriente.ts";
 import { cuentas } from "./cuentas.ts";
 import { cuits } from "./cuits.ts";
 import { eventanilla } from "./eventanilla.ts";
+import { indices } from "./indices.ts";
 import { iva } from "./iva.ts";
 import { libroiva } from "./libroiva.ts";
 import { login } from "./login.ts";
@@ -16,10 +17,12 @@ import { logout } from "./logout.ts";
 import { mayor } from "./mayor.ts";
 import { pagos } from "./pagos.ts";
 import { productos } from "./productos.ts";
+import { provincias } from "./provincias.ts";
 import { puntosventa } from "./puntosventa.ts";
 import { recibos } from "./recibos.ts";
 import { status } from "./status.ts";
 import { sumasysaldos } from "./sumasysaldos.ts";
+import { unidades } from "./unidades.ts";
 import { ventas } from "./ventas.ts";
 
 export type Command = {
@@ -57,4 +60,7 @@ export const COMMANDS: Command[] = [
   puntosventa,
   cuentas,
   centroscosto,
+  unidades,
+  provincias,
+  indices,
 ];
