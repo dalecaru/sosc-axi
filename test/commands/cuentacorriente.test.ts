@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, setSystemTime, test } from "bun:test";
 import { cuentacorriente } from "../../src/commands/cuentacorriente.ts";
 import { expectAxiError, mockApi, seed, useSandbox } from "../helpers.ts";
 
@@ -71,7 +71,7 @@ test("lists the balance per cliente, sending the filters as a GET body", async (
     method: "GET",
     path: "/cuentacorriente/listado",
     auth: "Bearer jwtc-11",
-    body: { CP: "C", tipo: "T", fechadesde: "2026-01-01", fechahasta: "2026-10-22" },
+    body: { CP: "C", tipo: "T", fechadesde: "2026-01-01", fechahasta: "2026-10-23" },
   });
 });
 
@@ -84,12 +84,19 @@ test("--proveedores and --pendientes pick the side and only unmatched movements"
   expect(calls[0]!.body).toMatchObject({ CP: "P", tipo: "P" });
 });
 
-test("defaults to this year up to today", async () => {
+test("defaults to this year up to today, today included", async () => {
   loggedIn();
-  const calls = mockApi({ "GET /cuentacorriente/listado": { items: [] } });
-  await cuentacorriente.run([], undefined);
-  const today = new Date().toLocaleDateString("sv-SE");
-  expect(calls[0]!.body).toMatchObject({ fechadesde: `${today.slice(0, 4)}-01-01`, fechahasta: today });
+  setSystemTime(new Date(2026, 11, 31, 12));
+  try {
+    const calls = mockApi({ "GET /cuentacorriente/listado": { items: [] } });
+    expect(await cuentacorriente.run([], undefined)).toEqual({
+      cuentacorriente: "0 clientes with movements in 2026-01-01 to 2026-12-31",
+    });
+    // The API excludes fechahasta itself.
+    expect(calls[0]!.body).toMatchObject({ fechadesde: "2026-01-01", fechahasta: "2027-01-01" });
+  } finally {
+    setSystemTime();
+  }
 });
 
 test("--clipro shows the movements of one party with a running saldo", async () => {
