@@ -6,7 +6,8 @@ import { str } from "../comprobantes.ts";
 import { loadStore } from "../store.ts";
 import type { Command } from "./index.ts";
 
-// Found by probing the API, which publishes no list (unknown ones return {}). operacion exists but fails server-side.\n// Add a modulo here when a new one turns up.
+// Found by probing the API, which publishes no list (unknown ones return {}). operacion exists but fails server-side.
+// Add a modulo here when a new one turns up.
 const MODULOS = [
   "bancos",
   "condicioniibb",
