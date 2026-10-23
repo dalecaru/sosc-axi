@@ -1,7 +1,7 @@
 import { api } from "../api.ts";
 import { parse } from "../args.ts";
 import { activeCuit } from "../auth.ts";
-import { cents, date, num, str, year } from "../comprobantes.ts";
+import { cents, date, nextDay, num, str, year } from "../comprobantes.ts";
 import { loadStore } from "../store.ts";
 import type { Command } from "./index.ts";
 
@@ -19,9 +19,6 @@ examples:
   sosc-axi sumasysaldos --ejercicio 2025
 `;
 
-// The API reads each date one day early (2026-10-01 means 2026-09-30), so send the next day.
-const nextDay = (d: string) => new Date(Date.parse(d) + 86_400_000).toJSON().slice(0, 10);
-
 async function run(args: string[]) {
   const { values } = parse("sumasysaldos", args, {
     ejercicio: { type: "string" },
@@ -35,6 +32,7 @@ async function run(args: string[]) {
     "ejercicio",
     values.ejercicio ?? (desde ?? hasta)?.slice(0, 4) ?? String(new Date().getFullYear()),
   );
+  // The API reads each date one day early (2026-10-01 means 2026-09-30), so send the next day.
   const query = new URLSearchParams({
     fechadesde: nextDay(desde ?? `${ejercicio}-01-01`),
     fechahasta: nextDay(hasta ?? `${ejercicio}-12-31`),

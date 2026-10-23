@@ -1,5 +1,5 @@
 import { describe, expect, setSystemTime, test } from "bun:test";
-import { detalle, listado, periodoFiscal } from "../src/comprobantes.ts";
+import { detalle, listado, nextDay, periodoFiscal } from "../src/comprobantes.ts";
 import { expectAxiError, mockApi, seed, useSandbox } from "./helpers.ts";
 
 useSandbox();
@@ -45,7 +45,7 @@ describe("listado", () => {
   test("date range uses entre_fechas; pagina is sent as a row offset; a full page hints the next one", async () => {
     loggedIn();
     const calls = mockApi({
-      "GET /x/entre_fechas?pagina=4&registros=3&fecha_desde=2026-01-01&fecha_hasta=2026-01-31": { items: [{}, {}, {}] },
+      "GET /x/entre_fechas?pagina=4&registros=3&fecha_desde=2026-01-01&fecha_hasta=2026-02-01": { items: [{}, {}, {}] },
     });
     const out = await run(["--desde", "2026-01-01", "--hasta", "2026-01-31", "--pagina", "2", "--registros", "3"]);
     expect(calls).toHaveLength(1);
@@ -281,4 +281,13 @@ describe("periodoFiscal", () => {
       message,
     );
   });
+});
+
+test("nextDay crosses month, year and leap-day boundaries", () => {
+  expect(["2026-01-31", "2026-12-31", "2028-02-28", "2026-02-28"].map(nextDay)).toEqual([
+    "2026-02-01",
+    "2027-01-01",
+    "2028-02-29",
+    "2026-03-01",
+  ]);
 });

@@ -48,6 +48,8 @@ export const date = (flag: string, value: string) => {
   return value;
 };
 
+export const nextDay = (d: string) => new Date(Date.parse(d) + 86_400_000).toJSON().slice(0, 10);
+
 const STRING = { type: "string" } as const;
 
 /** Comma-separated positive integers: --puntoventa 5,6, --cliente 582660. */
@@ -122,7 +124,8 @@ export async function listado(opts: {
   const query = new URLSearchParams({ pagina: String((pagina - 1) * registros + 1), registros: String(registros) });
   if (range && !filtered) {
     query.set("fecha_desde", from!);
-    query.set("fecha_hasta", to!);
+    // The listing excludes fecha_hasta itself (the consulta includes it), so send the next day.
+    query.set("fecha_hasta", nextDay(to!));
   }
   const body = filtered
     ? {

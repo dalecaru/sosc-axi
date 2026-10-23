@@ -2,7 +2,7 @@ import { AxiError } from "axi-sdk-js";
 import { api } from "../api.ts";
 import { parse } from "../args.ts";
 import { activeCuit } from "../auth.ts";
-import { cents, date, num, numero, str } from "../comprobantes.ts";
+import { cents, date, nextDay, num, numero, str } from "../comprobantes.ts";
 import { loadStore } from "../store.ts";
 import type { Command } from "./index.ts";
 
@@ -77,7 +77,8 @@ async function run(args: string[]) {
         // T is every movement; any other tipo returns only the unmatched ones.
         tipo: values.pendientes ? "P" : "T",
         fechadesde: desde,
-        fechahasta: hasta,
+        // The API excludes fechahasta itself, so send the next day.
+        fechahasta: nextDay(hasta),
         ...(clipro ? { idclipro: Number(clipro) } : {}),
       },
     });
