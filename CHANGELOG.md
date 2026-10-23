@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.5](https://github.com/dalecaru/sosc-axi/compare/sosc-axi-v0.1.4...sosc-axi-v0.1.5) (2026-10-23)
+
+
+### Bug Fixes
+
+* **clientes:** honor --registros outside the API's 16-50 page size ([#48](https://github.com/dalecaru/sosc-axi/issues/48)) ([9426b77](https://github.com/dalecaru/sosc-axi/commit/9426b77dbae670ac1e97247e816f6c074c91b29c))
+* **eventanilla:** 90-day window counts back from today, not --hasta ([#46](https://github.com/dalecaru/sosc-axi/issues/46)) ([867715c](https://github.com/dalecaru/sosc-axi/commit/867715cb1bb589a829998357374433b35209b844))
+* **productos:** drop --pagina and --registros, the API ignores both ([#50](https://github.com/dalecaru/sosc-axi/issues/50)) ([6edc848](https://github.com/dalecaru/sosc-axi/commit/6edc8485f6957bee1a1ed95e5c36bde54cd48fa3)), closes [#49](https://github.com/dalecaru/sosc-axi/issues/49)
+
 ## [0.1.4](https://github.com/dalecaru/sosc-axi/compare/sosc-axi-v0.1.3...sosc-axi-v0.1.4) (2026-10-23)
 
 
