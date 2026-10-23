@@ -37,9 +37,11 @@ test("lists clientes and proveedores by default, labeling each row's tipo", asyn
 test("labels ambos for ids in both lists, even when they sit on different pages", async () => {
   loggedIn();
   mockApi({
-    "GET /cliente/listado?pagina=2&registros=2&cliente=true&proveedor=true": {
-      paginas: 2,
+    "GET /cliente/listado?pagina=1&registros=50&cliente=true&proveedor=true": {
+      paginas: 1,
       items: [
+        { id: 1, cuit: "3", clipro: "Cli" },
+        { id: 2, cuit: "4", clipro: "Other" },
         { id: 3, cuit: "1", clipro: "Both" },
         { id: 4, cuit: "2", clipro: "Prov" },
       ],
@@ -125,6 +127,69 @@ test("--tipo cliente asks only for clientes", async () => {
   const calls = mockApi({ "GET /cliente/listado?pagina=1&registros=50&cliente=true": { items: [] } });
   expect(await clientes.run(["--tipo", "cliente"], undefined)).toEqual({ clientes: "0 clientes" });
   expect(calls).toHaveLength(1);
+});
+
+// The API serves 16-50 rows per page whatever registros asks: a list of `total` clientes in 50-row pages.
+const pages = (total: number) => {
+  const paginas = Math.ceil(total / 50);
+  return Object.fromEntries(
+    Array.from({ length: paginas + 1 }, (_, i) => [
+      `GET /cliente/listado?pagina=${i + 1}&registros=50&cliente=true`,
+      {
+        paginas,
+        items: Array.from({ length: Math.max(0, Math.min(50, total - i * 50)) }, (_, j) => ({ id: i * 50 + j })),
+      },
+    ]),
+  );
+};
+const idsOf = (out: unknown) => ((out as { clientes: { id: string }[] }).clientes ?? []).map((c) => Number(c.id));
+const range = (from: number, to: number) => Array.from({ length: to - from }, (_, i) => from + i);
+
+test("--registros over 50 collects 50-row API pages until it has them all", async () => {
+  loggedIn();
+  const calls = mockApi(pages(125));
+  const out = (await clientes.run(["--tipo", "cliente", "--registros", "200"], undefined)) as Record<string, unknown>;
+  expect(idsOf(out)).toEqual(range(0, 125));
+  expect(out.count).toBe("125 clientes, page 1 of 1");
+  expect(out.help).toBeUndefined();
+  expect(calls.map((c) => c.path)).toEqual(
+    [1, 2, 3].map((p) => `/cliente/listado?pagina=${p}&registros=50&cliente=true`),
+  );
+});
+
+test("a later page over 50 rows starts where the previous one ended", async () => {
+  loggedIn();
+  const calls = mockApi(pages(125));
+  const out = (await clientes.run(["--tipo", "cliente", "--registros", "60", "--pagina", "2"], undefined)) as Record<
+    string,
+    unknown
+  >;
+  expect(idsOf(out)).toEqual(range(60, 120));
+  expect(out.count).toBe("60 clientes, page 2 of 3");
+  expect(out.help).toEqual(["Run with `--pagina 3` for more"]);
+  expect(calls).toHaveLength(2);
+});
+
+test("--registros under 16 cuts its page out of a 50-row API page", async () => {
+  loggedIn();
+  const calls = mockApi(pages(125));
+  const out = (await clientes.run(["--tipo", "cliente", "--registros", "10", "--pagina", "2"], undefined)) as Record<
+    string,
+    unknown
+  >;
+  expect(idsOf(out)).toEqual(range(10, 20));
+  expect(out.count).toBe("10 clientes, page 2 of 13");
+  expect(out.help).toEqual(["Run with `--pagina 3` for more"]);
+  // The last API page gives the total, for the page count.
+  expect(calls.map((c) => c.path)).toEqual([1, 3].map((p) => `/cliente/listado?pagina=${p}&registros=50&cliente=true`));
+});
+
+test("a page past the end of a collected listing says so", async () => {
+  loggedIn();
+  mockApi({ "GET /cliente/listado?pagina=5&registros=50&cliente=true": { paginas: 3, items: [] } });
+  expect(await clientes.run(["--tipo", "cliente", "--registros", "200", "--pagina", "2"], undefined)).toEqual({
+    clientes: "0 clientes on page 2",
+  });
 });
 
 test("an empty later page says so", async () => {
