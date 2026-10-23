@@ -1,6 +1,6 @@
 {
   "name": "sosc-axi",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "AXI-compliant CLI for SOS Contador - agent-ergonomic TOON output",
   "keywords": [
     "sos-contador",
