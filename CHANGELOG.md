@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/dalecaru/sosc-axi/compare/sosc-axi-v0.1.3...sosc-axi-v0.1.4) (2026-10-23)
+
+
+### Bug Fixes
+
+* include the --hasta date in ventas, compras and cuentacorriente ([#42](https://github.com/dalecaru/sosc-axi/issues/42)) ([7980584](https://github.com/dalecaru/sosc-axi/commit/7980584e2bfe26603b383932d303140fe7da24a2))
+
 ## [0.1.3](https://github.com/dalecaru/sosc-axi/compare/sosc-axi-v0.1.2...sosc-axi-v0.1.3) (2026-10-23)
 
 
