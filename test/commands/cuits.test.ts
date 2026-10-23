@@ -122,3 +122,43 @@ describe("use", () => {
     await expectAxiError(cuits.run(["use"], undefined), "VALIDATION_ERROR", "CUIT number (11 digits) is required");
   });
 });
+
+describe.each([
+  ["sct", "/cuit/sct", "SCT"],
+  ["ccma", "/cuit/ccma", "CCMA"],
+])("%s", (sub, path, label) => {
+  const active = () =>
+    seed({
+      default: "ana@x.com",
+      accounts: { "ana@x.com": { jwt: JWT, cuit: "11", cuits: [{ id: "11", cuit: "20123456789", jwtc: "jwtc-11" }] } },
+    });
+
+  test("shows the AFIP summary of the active CUIT with its token, prefix stripped", async () => {
+    active();
+    const calls = mockApi({
+      [`GET ${path}`]: {
+        [`${sub}_fechadecalculo`]: "2026-10-22T03:00:00.000Z",
+        [`${sub}_totaldeuda`]: 4961210.85,
+        [`${sub}_enviar`]: null,
+      },
+    });
+    expect(await cuits.run([sub], undefined)).toEqual({
+      cuit: "20123456789",
+      [sub]: { fechadecalculo: "2026-10-22", totaldeuda: "4961210.85", enviar: "" },
+    });
+    expect(calls).toEqual([{ method: "GET", path, auth: "Bearer jwtc-11", body: undefined }]);
+  });
+
+  test("never calculated", async () => {
+    active();
+    mockApi({ [`GET ${path}`]: { [`${sub}_fechadecalculo`]: null, [`${sub}_rango`]: 0, [`${sub}_x`]: "" } });
+    expect(await cuits.run([sub], undefined)).toEqual({
+      [sub]: `no ${label} data calculated for 20123456789`,
+    });
+  });
+
+  test("takes no extra flags", async () => {
+    active();
+    await expectAxiError(cuits.run([sub, "--pagina", "2"], undefined), "VALIDATION_ERROR", "unknown flag --pagina");
+  });
+});
