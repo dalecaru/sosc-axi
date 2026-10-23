@@ -102,7 +102,7 @@ sosc-axi iva --mes 09                             # F2002: débito, crédito, re
 sosc-axi eventanilla                              # AFIP communications of the last 30 days
 ```
 
-`--ejercicio` defaults to this year and `--mes` (01-12) narrows it to one month. AFIP serves e-ventanilla at most 90 days back from `--hasta`. `sosc-axi <command> --help` lists every flag.
+`--ejercicio` defaults to this year and `--mes` (01-12) narrows it to one month. AFIP serves e-ventanilla only for the last 90 days, counted from today. `sosc-axi <command> --help` lists every flag.
 
 ## Contabilidad
 

@@ -71,7 +71,28 @@ test("defaults to the last 30 days; says when the API narrowed the range", async
   expect(calls).toHaveLength(1);
   expect(await eventanilla.run(["--desde", "2026-01-01", "--hasta", "2026-10-22"], undefined)).toEqual({
     eventanilla: "0 comunicaciones in 2026-07-24 to 2026-10-22",
-    help: ["AFIP serves at most 90 days back from --hasta; query an earlier --hasta for older ones"],
+    help: ["AFIP serves only the last 90 days, from 2026-07-24; older comunicaciones are not reachable"],
+  });
+});
+
+test("the 90 days count back from today, not --hasta; a window older than that says so", async () => {
+  loggedIn();
+  mockApi({
+    "GET /afip/eventanilla?desde=2026-07-01&hasta=2026-08-15": {
+      consulta: { desde: "2026-07-25", hasta: "2026-08-15" },
+      items: [ITEM],
+    },
+    "GET /afip/eventanilla?desde=2026-05-01&hasta=2026-07-24": {
+      consulta: { desde: "2026-07-25", hasta: "2026-07-24" },
+      items: [],
+    },
+  });
+  expect(await eventanilla.run(["--desde", "2026-07-01", "--hasta", "2026-08-15"], undefined)).toMatchObject({
+    eventanilla: "1 comunicaciones (1 sin leer) in 2026-07-25 to 2026-08-15",
+    help: ["AFIP serves only the last 90 days, from 2026-07-25; older comunicaciones are not reachable"],
+  });
+  expect(await eventanilla.run(["--desde", "2026-05-01", "--hasta", "2026-07-24"], undefined)).toEqual({
+    eventanilla: "0 comunicaciones: 2026-05-01 to 2026-07-24 is older than the 90 days AFIP serves (from 2026-07-25)",
   });
 });
 
