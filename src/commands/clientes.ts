@@ -29,18 +29,42 @@ async function run(args: string[]) {
   const tipo = oneOf("tipo", values.tipo, ["cliente", "proveedor"]);
   const pagina = positive("pagina", values.pagina, 1);
   const registros = positive("registros", values.registros, 50);
-  const query = new URLSearchParams({ pagina: String(pagina), registros: String(registros) });
   // The API reads cliente=false as true, so only the wanted side is sent.
-  if (tipo !== "proveedor") query.set("cliente", "true");
-  if (tipo !== "cliente") query.set("proveedor", "true");
+  const sides = new URLSearchParams();
+  if (tipo !== "proveedor") sides.set("cliente", "true");
+  if (tipo !== "cliente") sides.set("proveedor", "true");
 
   const [usuario, cuit, jwtc] = await activeCuit(loadStore(), values.usuario);
-  const res = await api<{ paginas?: number; items?: Clipro[] }>(`/cliente/listado?${query}`, {
-    token: jwtc,
-    usuario,
-  });
-  const items = Array.isArray(res?.items) ? res.items : [];
-  const paginas = num(res?.paginas);
+  const listado = async (p: number, size: number) => {
+    const res = await api<{ paginas?: number; items?: Clipro[] }>(
+      `/cliente/listado?pagina=${p}&registros=${size}&${sides}`,
+      { token: jwtc, usuario },
+    );
+    return { rows: Array.isArray(res?.items) ? res.items : [], paginas: num(res?.paginas) };
+  };
+
+  let items: Clipro[];
+  let paginas: number;
+  if (registros >= 16 && registros <= 50) {
+    ({ rows: items, paginas } = await listado(pagina, registros));
+  } else {
+    // The API serves at least 16 and at most 50 rows per page whatever registros asks,
+    // so other sizes are cut out of 50-row pages.
+    const start = (pagina - 1) * registros;
+    const first = Math.floor(start / 50) + 1;
+    const want = start + registros - (first - 1) * 50;
+    let p = first;
+    let page = await listado(p, 50);
+    const rows = [...page.rows];
+    while (rows.length < want && page.rows.length === 50 && p < page.paginas) {
+      page = await listado(++p, 50);
+      rows.push(...page.rows);
+    }
+    items = rows.slice(start - (first - 1) * 50, want);
+    // Only the last page's length gives the total, for the page count.
+    if (items.length && page.rows.length === 50 && p < page.paginas) page = await listado((p = page.paginas), 50);
+    paginas = Math.ceil(((p - 1) * 50 + page.rows.length) / registros);
+  }
   const label = tipo === "proveedor" ? "proveedores" : "clientes";
 
   if (!items.length) return { clientes: pagina > 1 ? `0 ${label} on page ${pagina}` : `0 ${label}` };
