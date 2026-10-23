@@ -1,40 +1,30 @@
 import { api } from "../api.ts";
 import { parse } from "../args.ts";
 import { activeCuit } from "../auth.ts";
-import { num, positive, str } from "../comprobantes.ts";
+import { num, str } from "../comprobantes.ts";
 import { loadStore } from "../store.ts";
 import type { Command } from "./index.ts";
 
-const help = `usage: sosc-axi productos [--pagina <n>] [--registros <n>] [--usuario <email>]
-flags:
-  --pagina      page number (default 1)
-  --registros   rows per page (default 50)
-Lists the productos of the active CUIT (\`sosc-axi cuits use\` selects it), with list price 1 and IVA rate.
+const help = `usage: sosc-axi productos [--usuario <email>]
+Lists all productos of the active CUIT (\`sosc-axi cuits use\` selects it), with list price 1 and IVA rate.
 examples:
   sosc-axi productos
-  sosc-axi productos --pagina 2
 `;
 
 type Producto = Record<string, unknown>;
 
 async function run(args: string[]) {
-  const { values } = parse("productos", args, {
-    pagina: { type: "string" },
-    registros: { type: "string" },
-    usuario: { type: "string" },
-  });
-  const pagina = positive("pagina", values.pagina, 1);
-  const registros = positive("registros", values.registros, 50);
-  const query = new URLSearchParams({ pagina: String(pagina), registros: String(registros) });
+  const { values } = parse("productos", args, { usuario: { type: "string" } });
 
   const [usuario, cuit, jwtc] = await activeCuit(loadStore(), values.usuario);
-  const res = await api<Producto[] | { items?: Producto[] }>(`/producto/listado?${query}`, { token: jwtc, usuario });
+  // The spec lists pagina/registros, but the API ignores both and returns the whole catalog
+  const res = await api<Producto[] | { items?: Producto[] }>("/producto/listado", { token: jwtc, usuario });
   const items = (Array.isArray(res) ? res : res?.items) ?? [];
 
-  if (!items.length) return { productos: pagina > 1 ? `0 productos on page ${pagina}` : "0 productos" };
+  if (!items.length) return { productos: "0 productos" };
   return {
     cuit: cuit.cuit,
-    count: `${items.length} productos, page ${pagina}`,
+    count: `${items.length} productos`,
     productos: items.map((p) => ({
       id: str(p.id),
       codigo: str(p.codigo),
@@ -42,7 +32,6 @@ async function run(args: string[]) {
       precio: num(p.precio1),
       iva: num(p.tasaiva),
     })),
-    ...(items.length === registros ? { help: [`Run with \`--pagina ${pagina + 1}\` for more`] } : {}),
   };
 }
 
