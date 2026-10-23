@@ -29,6 +29,7 @@ sosc-axi login                       # prompts for usuario and password
 sosc-axi status                      # check the session and active CUIT against the API
 sosc-axi cuits                       # CUITs the account can access
 sosc-axi cuits use 20123456789       # select the working CUIT
+sosc-axi cuits sct                   # AFIP SCT debt summary of the active CUIT (ccma: monotributo/autónomos)
 sosc-axi login --usuario bob@estudio.com   # add another account
 sosc-axi accounts                    # list logged-in accounts
 sosc-axi accounts use ana@estudio.com
