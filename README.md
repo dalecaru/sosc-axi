@@ -137,7 +137,12 @@ Reference tables, read-only:
 sosc-axi unidades                                 # AFIP units of measure
 sosc-axi provincias                               # ids for idprovinciaiibb
 sosc-axi indices                                  # índices de ajuste por inflación per month, with axic/axii
+sosc-axi actividades panaderia                    # AFIP actividades by description: code and name
+sosc-axi tipos condicioniva                       # id and name of a parameter table; `tipos --help` lists the modulos
+sosc-axi tipos creditofiscal bienes
 ```
+
+Searches drop accents: the API finds nothing when the text has them. Without the search text, both list everything.
 
 Without `--tipo`, `clientes` also reads both side lists in full to label rows, so it makes extra API calls. Above 25,000 rows per side it fails with `API_ERROR`; pass `--tipo` then.
 

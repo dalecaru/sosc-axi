@@ -1,5 +1,6 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { accounts } from "./accounts.ts";
+import { actividades } from "./actividades.ts";
 import { asientos } from "./asientos.ts";
 import { centroscosto } from "./centroscosto.ts";
 import { clientes } from "./clientes.ts";
@@ -23,6 +24,7 @@ import { puntosventa } from "./puntosventa.ts";
 import { recibos } from "./recibos.ts";
 import { status } from "./status.ts";
 import { sumasysaldos } from "./sumasysaldos.ts";
+import { tipos } from "./tipos.ts";
 import { unidades } from "./unidades.ts";
 import { ventas } from "./ventas.ts";
 
@@ -65,4 +67,6 @@ export const COMMANDS: Command[] = [
   unidades,
   provincias,
   indices,
+  actividades,
+  tipos,
 ];
