@@ -36,4 +36,4 @@ jobs:
     steps:
       # Pinned to a commit, never @main: bump the pin in a separate PR.
       - name: Verify no-mistakes signature and pipeline attestation in PR body
-        uses: kunchenguid/no-mistakes/.github/actions/require-no-mistakes@f6441c96c352a18b9cadcaef6b6c7017e9ac3970 # v1.80.1
+        uses: kunchenguid/no-mistakes/.github/actions/require-no-mistakes@4822244e763fd4c3d7f48be6433f92df10bb5b33 # v1.84.0
